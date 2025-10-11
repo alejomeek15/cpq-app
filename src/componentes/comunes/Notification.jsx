@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from "@/ui/alert.jsx";
 import { CheckCircle, XCircle } from 'lucide-react';
 
 /**

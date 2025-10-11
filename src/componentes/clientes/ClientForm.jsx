@@ -122,7 +122,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <button onClick={onBack} className="text-gray-400 hover:text-indigo-400">← Volver</button>
-                    <h1 className="text-3xl font-bold text-indigo-400">{isEditMode ? client.nombre : 'Nuevo Cliente'}</h1>
+                    <h1 className="text-3xl font-bold text-indigo-400">{isEditMode ? client.nombre : 'Nuevo Clientees'}</h1>
                 </div>
                  {isEditMode && (
                     <div className="relative">

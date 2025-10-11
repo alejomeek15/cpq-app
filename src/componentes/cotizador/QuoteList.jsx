@@ -6,6 +6,7 @@ import SelectionToolbar from '../comunes/SelectionToolbar';
 import CardView from '../comunes/CardView';
 import QuoteCard from './QuoteCard';
 import AlertDialog from '../comunes/AlertDialog';
+import { Button } from '@/ui/button.jsx'; // <-- ¡IMPORTANTE! Se importa el componente Button
 
 // --- Iconos para la Interfaz de Usuario ---
 const ListIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 9a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 14a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"></path></svg>;
@@ -13,21 +14,18 @@ const KanbanIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0
 const PlusIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>;
 
 // Este componente es responsable de mostrar la lista de cotizaciones.
-// Maneja la obtención de datos desde Firestore, la selección de items y las acciones en lote.
 const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
     // --- Estados del Componente ---
-    const [quotes, setQuotes] = useState([]); // Almacena la lista de cotizaciones.
-    const [loading, setLoading] = useState(true); // Controla el estado de carga.
-    const [error, setError] = useState(null); // Almacena mensajes de error.
-    const [view, setView] = useState('list'); // Controla la vista actual: 'list' o 'card'.
-    const [isDialogOpen, setDialogOpen] = useState(false); // Controla la visibilidad del diálogo de confirmación.
+    const [quotes, setQuotes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [view, setView] = useState('list');
+    const [isDialogOpen, setDialogOpen] = useState(false);
 
     // --- Lógica de Selección ---
-    // Se utiliza el hook `useSelection` para centralizar la lógica de selección.
     const { selectedItems, handleSelect, handleSelectAll, hasSelection, isAllSelected } = useSelection(quotes);
 
     // --- Obtención de Datos ---
-    // Carga las cotizaciones desde Firestore y las ordena por fecha de creación.
     const fetchQuotes = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -44,37 +42,27 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
         }
     }, [db]);
 
-    // Llama a `fetchQuotes` cuando el componente se monta.
     useEffect(() => {
         fetchQuotes();
     }, [fetchQuotes]);
 
     // --- Manejadores de Acciones ---
-
-    // Maneja la eliminación en lote de las cotizaciones seleccionadas.
-    // Esta función ahora solo abre el diálogo de confirmación.
     const handleDeleteSelected = () => {
-        // --- LÍNEA DE DEPURACIÓN AÑADIDA ---
-        console.log('Se hizo clic en Eliminar (Cotizaciones). Abriendo diálogo personalizado...');
         setDialogOpen(true);
     };
 
-    // Esta nueva función contiene la lógica para eliminar las cotizaciones.
-    // Se ejecuta solo cuando el usuario confirma la acción en el diálogo.
     const confirmDeletion = async () => {
         try {
             const batch = writeBatch(db);
             selectedItems.forEach(id => batch.delete(doc(db, "cotizaciones", id)));
             await batch.commit();
-            fetchQuotes(); // Recarga los datos.
-            // Muestra una notificación de éxito.
+            fetchQuotes();
             setNotification({ 
                 type: 'success', 
                 title: 'Operación exitosa', 
                 message: `${selectedItems.size} cotización(es) eliminada(s).` 
             });
         } catch (err) {
-            // Muestra una notificación de error.
             setNotification({ 
                 type: 'error', 
                 title: 'Error', 
@@ -84,7 +72,6 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
         }
     };
 
-    // Función de ayuda para obtener el estilo del badge de estado.
     const getStatusBadge = (status = 'Borrador') => {
         const s = status.toLowerCase().replace(/\s/g, '-');
         const styles = {
@@ -94,11 +81,9 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
         return `px-2.5 py-0.5 text-xs font-semibold rounded-full ${styles[s] || 'bg-gray-500/10 text-gray-400'}`;
     };
 
-    // --- Renderizado de Estados de Carga y Error ---
     if (loading) return <div className="text-center p-10 text-text-secondary">Cargando...</div>;
     if (error) return <div className="text-center p-10 text-red-500 p-4">{error}</div>;
     
-    // --- Renderizado Principal del Componente ---
     return (
         <div>
             <AlertDialog
@@ -109,7 +94,6 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
                 description={`Esta acción no se puede deshacer. Se eliminarán permanentemente ${selectedItems.size} cotización(es) de la base de datos.`}
             />
 
-            {/* Cabecera con título y botones de acción */}
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold tracking-tight text-text-primary">Cotizaciones</h1>
                 <div className="flex items-center gap-4">
@@ -117,13 +101,16 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
                         <button onClick={() => setView('list')} className={`p-1.5 rounded-md ${view === 'list' ? 'bg-background text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}><ListIcon /></button>
                         <button onClick={() => setView('card')} className={`p-1.5 rounded-md ${view === 'card' ? 'bg-background text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}><KanbanIcon /></button>
                     </div>
-                    <button onClick={onAddNewQuote} className="bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-full flex items-center gap-2 transition-colors">
-                        <PlusIcon /> Nueva Cotización
-                    </button>
+
+                    {/* --- ¡CÓDIGO ACTUALIZADO AQUÍ! --- */}
+                    {/* Usamos el componente Button importado */}
+                    <Button onClick={onAddNewQuote}>
+                        <PlusIcon className="mr-2 h-4 w-4" /> Nueva Cotización
+                    </Button>
+
                 </div>
             </div>
 
-            {/* Barra de herramientas que aparece al seleccionar items */}
             {hasSelection && (
                 <SelectionToolbar
                     selectionCount={selectedItems.size}
@@ -131,12 +118,10 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
                 />
             )}
 
-            {/* Contenido principal: o un mensaje de "vacío" o las vistas de lista/tarjeta */}
             {quotes.length === 0 ? (
                 <div className="text-center text-text-secondary py-16">No hay cotizaciones.</div>
             ) : (
                 view === 'list' ? (
-                    // Vista de Tabla
                     <div className="bg-surface rounded-large border border-border">
                         <table className="w-full text-sm">
                             <thead className="text-xs text-text-secondary uppercase">
@@ -162,7 +147,6 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
                         </table>
                     </div>
                 ) : (
-                    // Vista de Tarjetas
                     <CardView 
                         items={quotes}
                         onCardClick={onEditQuote}

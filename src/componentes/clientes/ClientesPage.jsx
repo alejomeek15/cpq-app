@@ -10,7 +10,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '../ui/breadcrumb';
+} from "@/ui/breadcrumb.jsx";
 
 // Este componente actúa como un controlador o "router" para el módulo de clientes.
 // Decide qué vista mostrar: la lista, el formulario o la pantalla de importación.

@@ -9,7 +9,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '../ui/breadcrumb';
+} from "@/ui/breadcrumb.jsx";
 
 // Componente principal que controla qué vista se muestra en el módulo de cotizaciones.
 const QuotesPage = ({ db, navigate }) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-// --- Iconos ---
+// --- Iconos (Sin cambios) ---
 const BookOpen = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
 );
@@ -15,16 +15,20 @@ const Settings = (props) => (
 );
 
 
+// --- ¡CAMBIOS REALIZADOS AQUÍ! ---
 const Card = ({ title, description, icon, route, navigate }) => (
     <button
       onClick={() => navigate(route)}
-      className="card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 text-center transition-transform transform hover:-translate-y-1 hover:shadow-lg w-full"
+      // 1. Cambiamos el fondo a un gris oscuro y el borde a un tono sutil.
+      // 2. Ajustamos el efecto hover para que sea un cambio de color en lugar de sombra.
+      className="card bg-slate-800 p-6 rounded-xl border border-slate-700 text-center transition-all transform hover:-translate-y-1 hover:bg-slate-700 w-full"
     >
-      <div className="mx-auto text-indigo-500 dark:text-indigo-400 mb-4">
+      <div className="mx-auto text-indigo-400 mb-4">
         {React.cloneElement(icon, { className: "w-10 h-10 mx-auto" })}
       </div>
-      <h2 className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">{title}</h2>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">{description}</p>
+      {/* 3. Ajustamos los colores del texto para que sean más brillantes y legibles. */}
+      <h2 className="text-2xl font-bold text-indigo-400">{title}</h2>
+      <p className="mt-2 text-slate-400">{description}</p>
     </button>
 );
 
@@ -32,8 +36,9 @@ const Dashboard = ({ navigate }) => {
   return (
     <main className="container mx-auto p-4 md:p-8">
       <header className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">Panel de Control Principal</h1>
-        <p className="text-lg mt-2 text-gray-600 dark:text-gray-400">Selecciona un módulo para comenzar a trabajar.</p>
+        {/* También ajustamos estos colores para consistencia */}
+        <h1 className="text-4xl font-bold text-indigo-400">Panel de Control Principal</h1>
+        <p className="text-lg mt-2 text-gray-400">Selecciona un módulo para comenzar a trabajar.</p>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card title="Catálogo" description="Administra tus productos" icon={<BookOpen />} route="catalog" navigate={navigate} />

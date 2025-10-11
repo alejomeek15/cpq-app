@@ -8,7 +8,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../ui/alert-dialog';
+} from "@/ui/alert-dialog.jsx";
 
 /**
  * Un diálogo de confirmación genérico y controlado por estado.
