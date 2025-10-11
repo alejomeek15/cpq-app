@@ -10,29 +10,46 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger, // Importamos el trigger para el botón
 } from './sidebar.jsx';
+import { useSidebar } from './sidebar.jsx';
 
 export const AppSidebar = ({ navigate, route }) => {
+  const { state } = useSidebar();
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'quotes', label: 'Cotizaciones', icon: FileText },
     { id: 'clients', label: 'Clientes', icon: Users },
+    { id: 'settings', label: 'Configuración', icon: Settings },
   ];
 
   return (
-    // La prop collapsible="icon" es la clave
     <Sidebar collapsible="icon">
-      <SidebarHeader className="flex items-center justify-between p-2">
-        <h2 className="font-bold text-lg">CPQ</h2>
-        {/* Usamos SidebarTrigger, el botón oficial para colapsar */}
-        <SidebarTrigger />
+      <SidebarHeader className="p-2">
+        {/* --- CÓDIGO ACTUALIZADO --- */}
+        {/* 1. Eliminamos el SidebarTrigger de aquí. */}
+        {/* 2. Ajustamos el div para centrar el texto, ya que no hay botón. */}
+        <div className="relative h-7 w-full flex items-center justify-center">
+          <span
+            className={`font-bold text-lg whitespace-nowrap transition-opacity duration-300 ${
+              state === 'expanded' ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            Cepequ
+          </span>
+          <span
+            className={`font-bold text-lg absolute left-1/2 -translate-x-1/2 transition-opacity duration-300 ${
+              state === 'collapsed' ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            CPQ
+          </span>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
-          {/* El SidebarMenu es el contenedor de los items */}
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.id}>
@@ -41,7 +58,6 @@ export const AppSidebar = ({ navigate, route }) => {
                   isActive={route === item.id}
                 >
                   <item.icon className="size-4" />
-                  {/* El span es manejado automáticamente por SidebarMenuButton */}
                   <span>{item.label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -50,19 +66,7 @@ export const AppSidebar = ({ navigate, route }) => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => navigate('settings')}
-              isActive={route === 'settings'}
-            >
-              <Settings className="size-4" />
-              <span>Configuración</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      <SidebarFooter />
     </Sidebar>
   );
 };

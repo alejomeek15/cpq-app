@@ -3,8 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
-// --- Tus importaciones (sin cambios) ---
-import { SidebarProvider, SidebarTrigger } from '@/ui/sidebar.jsx';
+// Importa los componentes principales del layout y las páginas
+import { SidebarProvider } from '@/ui/sidebar.jsx';
 import { AppSidebar } from '@/ui/AppSidebar.jsx';
 import Dashboard from '@/ui/dashboard.jsx';
 import Placeholder from '@/ui/placeholder.jsx';
@@ -25,6 +25,7 @@ export default function App() {
     signInAnonymously(auth).catch((error) => console.error("Error de autenticación anónima", error));
   }, []);
 
+  // Función para renderizar la página actual según la ruta
   const renderRoute = () => {
     switch (route) {
       case 'dashboard': return <Dashboard navigate={setRoute} />;
@@ -37,19 +38,13 @@ export default function App() {
   };
 
   return (
-    // --- ¡CAMBIO CLAVE AQUÍ! ---
-    // 1. SidebarProvider es ahora el elemento principal.
-    // 2. Le pasamos las clases de estilo directamente a él.
     <SidebarProvider className="min-h-screen bg-gray-900 text-white">
       <AppSidebar navigate={setRoute} route={route} />
       
-      <main className="flex-1 flex flex-col">
-        <header className="p-4 md:hidden">
-          <SidebarTrigger />
-        </header>
-        <div className="flex-1 p-4 sm:p-6 lg:p-8">
-          {renderRoute()}
-        </div>
+      {/* El <main> es el contenedor del contenido principal. */}
+      {/* Tiene padding para darle espacio a todas las páginas. */}
+      <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
+        {renderRoute()}
       </main>
     </SidebarProvider>
   );

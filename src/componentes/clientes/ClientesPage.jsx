@@ -11,31 +11,18 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/ui/breadcrumb.jsx";
+import { SidebarTrigger } from '@/ui/sidebar.jsx';
 
-// Este componente actúa como un controlador o "router" para el módulo de clientes.
-// Decide qué vista mostrar: la lista, el formulario o la pantalla de importación.
 const ClientesPage = ({ db, navigate }) => {
-    // 'view' puede ser 'list', 'form', o 'import'
     const [view, setView] = useState('list');
-    
-    // 'currentClientId' se usa para pasar el ID del cliente al formulario cuando se va a editar.
-    // Si es null, el formulario estará en modo "crear".
     const [currentClientId, setCurrentClientId] = useState(null);
-    
-    // Estado para manejar la notificación.
     const [notification, setNotification] = useState(null);
-
-    // --- Funciones para navegar entre vistas ---
 
     const showListView = (message = null) => {
         setView('list');
         setCurrentClientId(null);
         if (message) {
-            setNotification({
-                type: 'success',
-                title: 'Éxito',
-                message: message
-            });
+            setNotification({ type: 'success', title: 'Éxito', message: message });
         }
     };
 
@@ -48,50 +35,31 @@ const ClientesPage = ({ db, navigate }) => {
         setView('import');
     };
 
-    // --- Renderizado del Breadcrumb ---
-    // Construye las "migas de pan" según la vista actual.
+    // Quitamos el margen de aquí para controlar el espaciado desde el layout principal.
     const renderBreadcrumb = () => (
-      <Breadcrumb className="mb-8">
+      <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
-              Dashboard
-            </BreadcrumbLink>
+            <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">Dashboard</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             {view === 'list' ? (
               <BreadcrumbPage>Clientes</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink onClick={() => showListView()} className="cursor-pointer">
-                Clientes
-              </BreadcrumbLink>
+              <BreadcrumbLink onClick={() => showListView()} className="cursor-pointer">Clientes</BreadcrumbLink>
             )}
           </BreadcrumbItem>
           {view === 'import' && (
-            <>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Importar</BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
+            <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>Importar</BreadcrumbPage></BreadcrumbItem></>
           )}
           {view === 'form' && (
-             <>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {currentClientId ? 'Editar Cliente' : 'Nuevo Cliente'}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </>
+             <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{currentClientId ? 'Editar Cliente' : 'Nuevo Cliente'}</BreadcrumbPage></BreadcrumbItem></>
           )}
         </BreadcrumbList>
       </Breadcrumb>
     );
 
-    // --- Renderizado Condicional ---
-    // Basado en el estado 'view', se renderiza el componente correspondiente.
     const renderContent = () => {
         switch (view) {
             case 'form':
@@ -105,9 +73,19 @@ const ClientesPage = ({ db, navigate }) => {
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="w-full">
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
-            {renderBreadcrumb()}
+            
+            <div className="mb-8">
+                {/* El botón del sidebar se renderiza primero en su propia línea */}
+                <SidebarTrigger />
+
+                {/* El Breadcrumb se renderiza debajo, con un pequeño margen superior para separarlo */}
+                <div className="mt-4">
+                  {renderBreadcrumb()}
+                </div>
+            </div>
+
             {renderContent()}
         </div>
     );
