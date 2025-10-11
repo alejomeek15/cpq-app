@@ -92,8 +92,10 @@ const QuotesPage = ({ db, navigate }) => {
                 <QuoteForm 
                     db={db} 
                     quoteId={currentQuoteId} 
-                    // Al volver, se muestra un mensaje de éxito.
-                    onBack={() => showListView('Cotización guardada correctamente.')} 
+                    // --- ¡CAMBIO REALIZADO AQUÍ! ---
+                    // Ahora onBack espera un parámetro 'saved'.
+                    // El mensaje solo se muestra si 'saved' es true.
+                    onBack={(saved) => showListView(saved ? 'Cotización guardada correctamente.' : null)} 
                 />
             )}
         </div>

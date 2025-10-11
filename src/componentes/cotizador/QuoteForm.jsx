@@ -1,27 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
-// --- ¡NUEVO! ---
-// 1. Importa la función de ayuda para obtener el número de cotización.
 import { obtenerSiguienteNumeroCotizacion } from '../../utils/firestoreUtils.js';
 
-// --- Sub-componente para el Pop-up de Notificación (Éxito o Error) ---
-const NotificationModal = ({ type, message, onClose }) => {
-    const isSuccess = type === 'success';
+// --- Sub-componente para el Pop-up de Notificación (SOLO PARA ERRORES) ---
+const NotificationModal = ({ message, onClose }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
             <div className="bg-gray-800 rounded-2xl p-8 max-w-sm w-full text-center shadow-lg animate-fade-in-up">
-                <div className={isSuccess ? "text-green-400 mb-4" : "text-red-400 mb-4"}>
-                    {isSuccess ? (
-                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    ) : (
-                         <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    )}
+                <div className="text-red-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <h2 className="text-2xl font-bold mb-4">{message}</h2>
                 <button 
                     onClick={onClose} 
-                    className={`w-full text-white px-6 py-3 rounded-lg font-semibold ${isSuccess ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                    className="w-full text-white px-6 py-3 rounded-lg font-semibold bg-red-600 hover:bg-red-700">
                     Aceptar
                 </button>
             </div>
@@ -163,7 +156,6 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
                             <p className="text-xs text-gray-400">SKU: {product.sku || 'N/A'}</p>
                         </div>
                     ))}
-                    {/* Opción para crear un nuevo producto */}
                     <div onClick={() => onCreateNew(query)} className="p-3 cursor-pointer text-indigo-400 hover:bg-gray-700">
                         <p className="font-semibold">+ Crear "{query}"</p>
                     </div>
@@ -190,7 +182,9 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
     const [isProductFormOpen, setIsProductFormOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
-    const [notification, setNotification] = useState(null);
+    
+    // --- ¡CAMBIO 1! --- Solo necesitamos un estado para los errores.
+    const [errorNotification, setErrorNotification] = useState(null);
 
     const fetchProducts = useCallback(async () => {
         const productsSnap = await getDocs(collection(db, "productos"));
@@ -221,27 +215,16 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                         });
                     }
                 } else {
-                    // --- ¡NUEVO! ---
-                    // 2. Se llama a la nueva función para obtener el número de forma segura.
                     const formattedNumber = await obtenerSiguienteNumeroCotizacion(db);
-                    
                     if (formattedNumber) {
-                        setQuote({ 
-                            numero: formattedNumber, 
-                            estado: 'Borrador', 
-                            clienteId: '', 
-                            vencimiento: '', 
-                            condicionesPago: '', 
-                            lineas: [] 
-                        });
+                        setQuote(prev => ({ ...prev, numero: formattedNumber }));
                     } else {
-                        // Opcional: Manejar el error en la UI si no se pudo generar el número
-                        setNotification({ type: 'error', message: "No se pudo generar un número de cotización. Intente de nuevo."});
+                        setErrorNotification({ message: "No se pudo generar un número de cotización."});
                     }
                 }
             } catch (error) {
                 console.error("Error loading data:", error);
-                setNotification({ type: 'error', message: "Error al cargar los datos iniciales."});
+                setErrorNotification({ message: "Error al cargar los datos iniciales."});
             } finally {
                 setLoading(false);
             }
@@ -286,14 +269,12 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     };
 
     const handleInputChange = (e) => setQuote(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
     const handleLineChange = (index, field, value) => {
         const updatedLines = [...quote.lineas];
         const numericValue = parseFloat(value);
         updatedLines[index][field] = isNaN(numericValue) ? value : numericValue;
         setQuote(prev => ({ ...prev, lineas: updatedLines }));
     };
-
     const handleInlineProductSelect = (index, product) => {
         const updatedLines = [...quote.lineas];
         updatedLines[index] = { productId: product.id, productName: product.nombre, quantity: 1, price: product.precioBase || 0 };
@@ -307,16 +288,10 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     const cancelSearchLine = (index) => setQuote(prev => ({ ...prev, lineas: prev.lineas.filter((_, i) => i !== index) }));
     const removeLine = (index) => setQuote(prev => ({ ...prev, lineas: prev.lineas.filter((_, i) => i !== index) }));
     
-    const handleCloseNotification = () => {
-        if (notification && notification.type === 'success') {
-            onBack();
-        }
-        setNotification(null);
-    };
 
     const handleSave = async () => {
         if (!quote.clienteId) {
-            setNotification({type: 'error', message: "Por favor, selecciona un cliente."});
+            setErrorNotification({message: "Por favor, selecciona un cliente."});
             return;
         }
 
@@ -345,10 +320,11 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                 quoteData.fechaCreacion = serverTimestamp();
                 await addDoc(collection(db, "cotizaciones"), quoteData);
             }
-            setNotification({type: 'success', message: "¡Cotización guardada exitosamente!"});
+            // --- ¡CAMBIO 2! --- Inmediatamente después de guardar, volvemos a la lista.
+            onBack(true);
         } catch (error) {
             console.error("Error al guardar la cotización: ", error);
-            setNotification({type: 'error', message: "Error al guardar. Revisa la consola."});
+            setErrorNotification({message: "Error al guardar. Revisa la consola."});
         }
     };
     
@@ -361,6 +337,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
     const { subtotal, tax, total } = calculateTotals();
     const statusOptions = ["Borrador", "Enviada", "En negociación", "Aprobada", "Rechazada", "Vencida"];
+    
     const handleAddToCart = (cart) => {
         const newLines = Object.entries(cart).map(([productId, quantity]) => {
             const product = products.find(p => p.id === productId);
@@ -374,13 +351,14 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
     return (
         <div>
-            {notification && (
+            {/* --- ¡CAMBIO 3! --- Eliminamos el InfoDialog. Solo renderizamos el modal de error. */}
+            {errorNotification && (
                 <NotificationModal 
-                    type={notification.type}
-                    message={notification.message}
-                    onClose={handleCloseNotification}
+                    message={errorNotification.message}
+                    onClose={() => setErrorNotification(null)}
                 />
             )}
+
              {isCatalogOpen && (
                 <ProductCatalogModal 
                     products={products} 
@@ -397,7 +375,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                 />
             )}
             
-            <button onClick={onBack} className="text-sm text-indigo-400 hover:underline mb-2 block">&larr; Volver</button>
+            <button onClick={() => onBack(false)} className="text-sm text-indigo-400 hover:underline mb-2 block">&larr; Volver</button>
             
             <div className="flex justify-between items-center mb-4">
                 <input 
@@ -408,7 +386,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                     className="text-4xl font-bold bg-transparent border-none focus:ring-0 p-0"
                 />
                 <div className="flex items-center gap-2">
-                    <button onClick={onBack} className="bg-gray-700 px-4 py-2 rounded-lg font-semibold">Cancelar</button>
+                    <button onClick={() => onBack(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-semibold">Cancelar</button>
                     <button onClick={handleSave} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700">Guardar</button>
                 </div>
             </div>
