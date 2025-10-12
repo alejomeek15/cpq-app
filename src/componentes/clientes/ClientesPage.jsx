@@ -63,7 +63,7 @@ const ClientesPage = ({ db, navigate }) => {
     const renderContent = () => {
         switch (view) {
             case 'form':
-                return <ClientForm db={db} clientId={currentClientId} onBack={() => showListView('Cliente guardado correctamente.')} />;
+                return <ClientForm db={db} clientId={currentClientId} onBack={(saved) => showListView(saved ? 'Cliente guardado correctamente.' : null)} />;
             case 'import':
                 return <ClientImport db={db} onBack={showListView} />;
             case 'list':

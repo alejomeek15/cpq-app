@@ -7,10 +7,10 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 import { SidebarProvider } from '@/ui/sidebar.jsx';
 import { AppSidebar } from '@/ui/AppSidebar.jsx';
 import Dashboard from '@/ui/dashboard.jsx';
-import Placeholder from '@/ui/placeholder.jsx';
 import ClientesPage from '@/componentes/clientes/ClientesPage.jsx';
 import CatalogoPage from '@/componentes/catalogo/CatalogoPage.jsx';
 import QuotesPage from '@/componentes/cotizador/QuotesPage.jsx';
+import SettingsPage from '@/componentes/configuracion/SettingsPage.jsx'; // <-- 1. IMPORTA LA NUEVA PÁGINA
 
 // Configuración de Firebase (sin cambios)
 const firebaseConfig = window.firebaseConfig;
@@ -32,7 +32,11 @@ export default function App() {
       case 'clients': return <ClientesPage db={db} navigate={setRoute} />;
       case 'catalog': return <CatalogoPage db={db} navigate={setRoute} />;
       case 'quotes': return <QuotesPage db={db} navigate={setRoute} />;
-      case 'settings': return <Placeholder title="Configuración" />;
+      
+      // --- ¡CAMBIO AQUÍ! ---
+      // 2. Reemplaza el Placeholder por la nueva página de configuración.
+      case 'settings': return <SettingsPage db={db} navigate={setRoute} />;
+
       default: return <Dashboard navigate={setRoute} />;
     }
   };

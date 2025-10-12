@@ -4,13 +4,14 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuLabel, 
+  DropdownMenuLabel,
+  DropdownMenuSeparator, // <-- Importamos el separador
   DropdownMenuTrigger 
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
-export const createColumns = (onEditClient) => [
-  // 1. Columna de Selección (Checkbox)
+// La función ahora también recibe un manejador para eliminar
+export const createColumns = (onEditClient, onDeleteClient) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -31,7 +32,6 @@ export const createColumns = (onEditClient) => [
     enableHiding: false,
   },
   
-  // 2. Columna de Nombre (Ordenable)
   {
     accessorKey: "nombre",
     header: ({ column }) => {
@@ -59,22 +59,11 @@ export const createColumns = (onEditClient) => [
     },
   },
 
-  // Columnas simples
-  {
-    accessorKey: "email",
-    header: "Email",
-  },
-  {
-    accessorKey: "telefono",
-    header: "Teléfono",
-  },
-  {
-    accessorFn: (row) => row.direccion?.pais,
-    id: "pais",
-    header: "País",
-  },
+  { accessorKey: "email", header: "Email" },
+  { accessorKey: "telefono", header: "Teléfono" },
+  { accessorFn: (row) => row.direccion?.pais, id: "pais", header: "País" },
   
-  // 3. Columna de Acciones (Menú desplegable)
+  // --- ¡CAMBIO AQUÍ! ---
   {
     id: "actions",
     cell: ({ row }) => {
@@ -91,6 +80,14 @@ export const createColumns = (onEditClient) => [
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => onEditClient(client.id)}>
               Editar Cliente
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {/* 2. Añadimos el nuevo ítem para eliminar, con un color rojo */}
+            <DropdownMenuItem 
+              className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
+              onClick={() => onDeleteClient(client.id)}
+            >
+              Eliminar Cliente
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

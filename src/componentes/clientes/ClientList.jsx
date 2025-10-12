@@ -20,7 +20,15 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState([]);
 
-  const columns = React.useMemo(() => createColumns(onEditClient), [onEditClient]);
+  // --- ¡CAMBIO 1! ---
+  // Nueva función para manejar la eliminación de un solo cliente.
+  const handleDeleteClient = (clientId) => {
+    setItemsToDelete([clientId]); // Ponemos el único ID en el estado
+    setDialogOpen(true); // Abrimos el mismo diálogo de confirmación
+  };
+  
+  // Pasamos la nueva función a createColumns.
+  const columns = React.useMemo(() => createColumns(onEditClient, handleDeleteClient), [onEditClient]);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -38,10 +46,9 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
-  const handleDeleteSelected = (selectedRowOriginals) => {
-    // La DataTable ahora nos puede pasar los objetos de fila completos.
-    // Extraemos los IDs de ellos.
-    const idsToDelete = selectedRowOriginals.map(row => row.id);
+  // Esta función ahora se usa para la eliminación en lote desde la DataTable
+  const handleDeleteSelected = (selectedRows) => {
+    const idsToDelete = selectedRows.map(row => row.id);
     setItemsToDelete(idsToDelete);
     setDialogOpen(true);
   };
@@ -57,8 +64,8 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
           title: 'Operación exitosa', 
           message: `${itemsToDelete.length} cliente(s) eliminado(s).` 
       });
-      setDialogOpen(false); // Cierra el diálogo después de eliminar
-      setItemsToDelete([]); // Limpia la selección
+      setDialogOpen(false);
+      setItemsToDelete([]);
     } catch (err) {
       setNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los clientes.' });
       console.error("Error deleting clients:", err);
@@ -97,10 +104,10 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
           <DataTable
             columns={columns}
             data={clients}
-            // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-            // Le decimos a la tabla que el filtro debe aplicarse a la columna 'nombre'
             filterColumn="nombre"
-            onDeleteSelectedItems={() => handleDeleteSelected(table.getFilteredSelectedRowModel().rows.map(row => row.original))}
+            // --- ¡CAMBIO 2! ---
+            // Le pasamos la función para manejar la eliminación en lote.
+            onDeleteSelectedItems={(selectedRows) => handleDeleteSelected(selectedRows)}
           />
         ) : (
           <CardView
