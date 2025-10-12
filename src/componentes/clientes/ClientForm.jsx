@@ -1,26 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, addDoc, deleteDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { Button } from '@/ui/button.jsx';
+import { Input } from '@/ui/input.jsx';
+
+// --- ¡NUEVAS IMPORTACIONES! ---
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/ui/card.jsx";
 
 const ClientForm = ({ db, clientId, onBack }) => {
-    // --- ¡CAMBIO 1! ---
-    // Actualizamos el estado para usar 'nombreContacto' y eliminar 'nombreCompania'.
     const [client, setClient] = useState({
         tipo: 'persona',
-        nombre: '', // Este es ahora el campo principal
+        nombre: '',
         email: '',
         telefono: '',
         direccion: { calle: '', ciudad: '', departamento: '', pais: '' },
         identificacionNumero: '',
         sitioWeb: '',
-        nombreContacto: '', // Nuevo campo para el contacto
+        nombreContacto: '',
         puestoTrabajo: ''
     });
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState('');
     const [isEditMode, setIsEditMode] = useState(false);
-    const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
-
+    
+    // (Toda la lógica de fetchClientData, handleChange, handleSubmit, etc. no cambia)
     const fetchClientData = useCallback(async () => {
         if (!clientId) {
             setIsEditMode(false);
@@ -37,19 +46,12 @@ const ClientForm = ({ db, clientId, onBack }) => {
                     ...data,
                     direccion: data.direccion || { calle: '', ciudad: '', departamento: '', pais: '' }
                 });
-            } else {
-                setStatus("Cliente no encontrado.");
-            }
-        } catch (error) {
-            setStatus("Error al cargar el cliente.");
-        } finally {
-            setLoading(false);
-        }
+            } else { setStatus("Cliente no encontrado."); }
+        } catch (error) { setStatus("Error al cargar el cliente.");
+        } finally { setLoading(false); }
     }, [db, clientId]);
 
-    useEffect(() => {
-        fetchClientData();
-    }, [fetchClientData]);
+    useEffect(() => { fetchClientData(); }, [fetchClientData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -63,14 +65,9 @@ const ClientForm = ({ db, clientId, onBack }) => {
 
     const handleTypeChange = (e) => {
         const newType = e.target.value;
-        // Limpiamos los campos al cambiar de tipo para evitar datos inconsistentes
         setClient(prev => ({
-            ...prev,
-            tipo: newType,
-            nombre: '',
-            nombreContacto: '',
-            puestoTrabajo: '',
-            sitioWeb: ''
+            ...prev, tipo: newType, nombre: '', nombreContacto: '',
+            puestoTrabajo: '', sitioWeb: ''
         }));
     };
 
@@ -78,7 +75,6 @@ const ClientForm = ({ db, clientId, onBack }) => {
         e.preventDefault();
         setStatus('Guardando...');
         try {
-            // Aseguramos que los campos no relevantes estén vacíos antes de guardar
             const dataToSave = { ...client };
             if (dataToSave.tipo === 'persona') {
                 dataToSave.nombreContacto = '';
@@ -101,84 +97,90 @@ const ClientForm = ({ db, clientId, onBack }) => {
     };
     
     const handleDelete = async () => {
-        if (window.confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+        if (window.confirm('¿Estás seguro?')) {
             try {
                 await deleteDoc(doc(db, "clientes", clientId));
                 onBack(false);
-            } catch (error) {
-                setStatus('Error al eliminar.');
-            }
+            } catch (error) { setStatus('Error al eliminar.'); }
         }
     };
 
-    if (loading) return <p className="text-center text-gray-500">Cargando formulario...</p>;
+    if (loading) return <p className="text-center">Cargando formulario...</p>;
 
+    // --- ¡AQUÍ ESTÁ LA NUEVA ESTRUCTURA CON CARD! ---
     return (
-        <div className="w-full max-w-4xl p-8 space-y-8 bg-gray-800 rounded-2xl shadow-2xl mx-auto">
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => onBack(false)} className="text-gray-400 hover:text-indigo-400">← Volver</button>
-                    {/* El título ahora siempre muestra el campo 'nombre' */}
-                    <h1 className="text-3xl font-bold text-indigo-400">{isEditMode ? client.nombre : 'Nuevo Cliente'}</h1>
+        <Card className="w-full max-w-4xl mx-auto">
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={() => onBack(false)} className="h-8 w-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        </Button>
+                        <div>
+                            <CardTitle>{isEditMode ? client.nombre : 'Nuevo Cliente'}</CardTitle>
+                            <CardDescription>
+                                {isEditMode ? 'Actualiza la información del cliente.' : 'Rellena los campos para crear un nuevo cliente.'}
+                            </CardDescription>
+                        </div>
+                    </div>
+                    {isEditMode && (
+                        <div>{/* Espacio para el menú de acciones si lo necesitas */}</div>
+                    )}
                 </div>
-                 {isEditMode && (
-                    <div className="relative">
-                        {/* Menú de acciones sin cambios */}
-                    </div>
-                )}
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                    <div className="flex items-center gap-6 mb-4">
-                        <label className="flex items-center gap-2"><input type="radio" name="tipo" value="persona" checked={client.tipo === 'persona'} onChange={handleTypeChange} /> Persona</label>
-                        <label className="flex items-center gap-2"><input type="radio" name="tipo" value="compañia" checked={client.tipo === 'compañia'} onChange={handleTypeChange} /> Compañía</label>
-                    </div>
-                    {/* --- ¡CAMBIO 2! --- */}
-                    {/* Este es ahora el campo de entrada principal para 'nombre'. */}
-                    <input type="text" 
+            </CardHeader>
+
+            <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-6">
+                    <div>
+                        <div className="flex items-center gap-6 mb-4">
+                            <label className="flex items-center gap-2"><input type="radio" name="tipo" value="persona" checked={client.tipo === 'persona'} onChange={handleTypeChange} /> Persona</label>
+                            <label className="flex items-center gap-2"><input type="radio" name="tipo" value="compañia" checked={client.tipo === 'compañia'} onChange={handleTypeChange} /> Compañía</label>
+                        </div>
+                        <Input 
+                           type="text" 
                            name="nombre"
                            value={client.nombre} 
                            onChange={handleChange} 
                            placeholder={client.tipo === 'compañia' ? 'Nombre de la Compañía *' : 'Nombre Completo de la Persona *'} 
-                           className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg text-xl" required />
-                </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <input type="email" name="email" value={client.email} onChange={handleChange} placeholder="Correo electrónico" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                    <input type="tel" name="telefono" value={client.telefono} onChange={handleChange} placeholder="Teléfono" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                </div>
-                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 pt-4">
-                    <div className="space-y-4">
-                        <h2 className="text-lg font-semibold text-gray-400">Dirección</h2>
-                        <input type="text" name="direccion.calle" value={client.direccion.calle} onChange={handleChange} placeholder="Calle..." className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <input type="text" name="direccion.ciudad" value={client.direccion.ciudad} onChange={handleChange} placeholder="Ciudad" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                            <input type="text" name="direccion.departamento" value={client.direccion.departamento} onChange={handleChange} placeholder="Departamento" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                           className="text-xl" required 
+                        />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <Input type="email" name="email" value={client.email} onChange={handleChange} placeholder="Correo electrónico" />
+                        <Input type="tel" name="telefono" value={client.telefono} onChange={handleChange} placeholder="Teléfono" />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 pt-4">
+                        <div className="space-y-4">
+                            <h2 className="text-lg font-semibold">Dirección</h2>
+                            <Input type="text" name="direccion.calle" value={client.direccion.calle} onChange={handleChange} placeholder="Calle..." />
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <Input type="text" name="direccion.ciudad" value={client.direccion.ciudad} onChange={handleChange} placeholder="Ciudad" />
+                                <Input type="text" name="direccion.departamento" value={client.direccion.departamento} onChange={handleChange} placeholder="Departamento" />
+                            </div>
+                            <Input type="text" name="direccion.pais" value={client.direccion.pais} onChange={handleChange} placeholder="País" />
                         </div>
-                        <input type="text" name="direccion.pais" value={client.direccion.pais} onChange={handleChange} placeholder="País" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                        <div className="space-y-4">
+                            <h2 className="text-lg font-semibold">Detalles Adicionales</h2>
+                            {client.tipo === 'compañia' && (
+                                <>
+                                    <Input type="text" name="nombreContacto" value={client.nombreContacto} onChange={handleChange} placeholder="Nombre del Contacto" />
+                                    <Input type="text" name="puestoTrabajo" value={client.puestoTrabajo} onChange={handleChange} placeholder="Puesto del Contacto" />
+                                </>
+                            )}
+                            <Input type="text" name="identificacionNumero" value={client.identificacionNumero} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'NIT' : 'Número de Identificación'} />
+                            {client.tipo === 'compañia' && (
+                               <Input type="url" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web (https://...)" />
+                            )}
+                        </div>
                     </div>
-                    <div className="space-y-4">
-                        <h2 className="text-lg font-semibold text-gray-400">Detalles Adicionales</h2>
-                         {/* --- ¡CAMBIO 3! --- */}
-                         {/* Ahora los campos adicionales son 'nombreContacto' y 'puestoTrabajo' */}
-                         {client.tipo === 'compañia' && (
-                            <>
-                                <input type="text" name="nombreContacto" value={client.nombreContacto} onChange={handleChange} placeholder="Nombre del Contacto" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                                <input type="text" name="puestoTrabajo" value={client.puestoTrabajo} onChange={handleChange} placeholder="Puesto del Contacto" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                            </>
-                        )}
-                        <input type="text" name="identificacionNumero" value={client.identificacionNumero} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'NIT' : 'Número de Identificación'} className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                        {client.tipo === 'compañia' && (
-                           <input type="url" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web (https://...)" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                        )}
-                    </div>
-                </div>
-                <div className="pt-6 flex items-center justify-end gap-4">
-                    <div className="text-sm font-medium text-gray-400 flex-grow">{status}</div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-4">
+                    <div className="text-sm font-medium text-slate-400 flex-grow">{status}</div>
                     <Button type="button" variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
-                    <Button type="submit">{isEditMode ? 'Actualizar' : 'Guardar'}</Button>
-                </div>
+                    <Button type="submit" disabled={loading}>{loading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar')}</Button>
+                </CardFooter>
             </form>
-        </div>
+        </Card>
     );
 };
 
