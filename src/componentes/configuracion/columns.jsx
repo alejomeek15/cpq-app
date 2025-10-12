@@ -23,12 +23,27 @@ export const createColumns = (onEdit, onDelete) => [
     ),
   },
   
+  // --- ¡CAMBIO AQUÍ! ---
   // Columna de Nombre
   {
     id: "nombre",
     accessorKey: "nombre",
     header: "Nombre",
-    cell: ({ row }) => <TableCell>{row.original.nombre}</TableCell>,
+    // Ahora la celda es un botón que llama a la función 'onEdit'
+    cell: ({ row }) => {
+        const condition = row.original;
+        return (
+            <TableCell>
+                <Button 
+                    variant="link" 
+                    className="p-0 h-auto font-medium text-white hover:text-indigo-400"
+                    onClick={() => onEdit(condition)}
+                >
+                    {condition.nombre}
+                </Button>
+            </TableCell>
+        );
+    },
   },
   
   // Columna de Acciones

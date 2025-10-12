@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { collection, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
-
-// --- ¡NUEVAS IMPORTACIONES! ---
 import {
   Card,
   CardContent,
@@ -20,6 +18,8 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
   useEffect(() => {
     if (condition) {
       setName(condition.nombre);
+    } else {
+      setName('');
     }
   }, [condition]);
 
@@ -30,27 +30,23 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
     setLoading(true);
     try {
       if (condition) {
-        // Editar condición existente
         const docRef = doc(db, 'condicionesPago', condition.id);
         await updateDoc(docRef, { nombre: name });
       } else {
-        // Crear nueva condición
         const collectionRef = collection(db, 'condicionesPago');
         await addDoc(collectionRef, {
           nombre: name,
-          posicion: itemCount, // Asigna la siguiente posición disponible
+          posicion: itemCount,
         });
       }
-      onBack(); // Vuelve a la lista
+      onBack(true); // Se guardó, envía 'true'
     } catch (error) {
       console.error("Error al guardar la condición:", error);
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    // --- ¡CAMBIO CLAVE! Reemplazamos el div por el componente Card ---
     <Card className="max-w-lg mx-auto">
       <CardHeader>
         <CardTitle>{condition ? 'Editar Condición' : 'Nueva Condición de Pago'}</CardTitle>
@@ -75,7 +71,9 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onBack}>
+          {/* --- ¡AQUÍ ESTÁ LA CORRECCIÓN DEFINITIVA! --- */}
+          {/* Envolvemos onBack en una función de flecha para que se llame SIN argumentos. */}
+          <Button type="button" variant="ghost" onClick={() => onBack()}>
             Cancelar
           </Button>
           <Button type="submit" disabled={loading}>

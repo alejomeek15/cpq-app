@@ -3,15 +3,17 @@ import { doc, getDoc, setDoc, addDoc, deleteDoc, serverTimestamp, collection } f
 import { Button } from '@/ui/button.jsx';
 
 const ClientForm = ({ db, clientId, onBack }) => {
+    // --- ¡CAMBIO 1! ---
+    // Actualizamos el estado para usar 'nombreContacto' y eliminar 'nombreCompania'.
     const [client, setClient] = useState({
-        tipo: 'compañia',
-        nombre: '',
+        tipo: 'persona',
+        nombre: '', // Este es ahora el campo principal
         email: '',
         telefono: '',
         direccion: { calle: '', ciudad: '', departamento: '', pais: '' },
         identificacionNumero: '',
         sitioWeb: '',
-        nombreCompania: '',
+        nombreContacto: '', // Nuevo campo para el contacto
         puestoTrabajo: ''
     });
     const [loading, setLoading] = useState(true);
@@ -61,14 +63,30 @@ const ClientForm = ({ db, clientId, onBack }) => {
 
     const handleTypeChange = (e) => {
         const newType = e.target.value;
-        setClient(prev => ({ ...prev, tipo: newType, nombreCompania: '', puestoTrabajo: '' }));
+        // Limpiamos los campos al cambiar de tipo para evitar datos inconsistentes
+        setClient(prev => ({
+            ...prev,
+            tipo: newType,
+            nombre: '',
+            nombreContacto: '',
+            puestoTrabajo: '',
+            sitioWeb: ''
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setStatus('Guardando...');
         try {
-            const dataToSave = { ...client, fechaActualizacion: serverTimestamp() };
+            // Aseguramos que los campos no relevantes estén vacíos antes de guardar
+            const dataToSave = { ...client };
+            if (dataToSave.tipo === 'persona') {
+                dataToSave.nombreContacto = '';
+                dataToSave.puestoTrabajo = '';
+                dataToSave.sitioWeb = '';
+            }
+            dataToSave.fechaActualizacion = serverTimestamp();
+
             if (isEditMode) {
                 await setDoc(doc(db, "clientes", clientId), dataToSave, { merge: true });
             } else {
@@ -93,18 +111,14 @@ const ClientForm = ({ db, clientId, onBack }) => {
         }
     };
 
-    // (Otras funciones como handleDuplicate sin cambios)
-
     if (loading) return <p className="text-center text-gray-500">Cargando formulario...</p>;
 
-    // --- ¡AQUÍ ESTÁ LA NUEVA ESTRUCTURA DEL LAYOUT! ---
     return (
-        // 1. Contenedor principal: ahora es una columna flexible con una altura máxima.
-        <div className="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl flex flex-col h-[calc(100vh-12rem)]">
-            {/* 2. Cabecera: se encoge para ocupar solo su espacio. */}
-            <div className="flex-shrink-0 p-8 pb-4 flex justify-between items-center">
+        <div className="w-full max-w-4xl p-8 space-y-8 bg-gray-800 rounded-2xl shadow-2xl mx-auto">
+            <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <button onClick={() => onBack(false)} className="text-gray-400 hover:text-indigo-400">← Volver</button>
+                    {/* El título ahora siempre muestra el campo 'nombre' */}
                     <h1 className="text-3xl font-bold text-indigo-400">{isEditMode ? client.nombre : 'Nuevo Cliente'}</h1>
                 </div>
                  {isEditMode && (
@@ -113,47 +127,52 @@ const ClientForm = ({ db, clientId, onBack }) => {
                     </div>
                 )}
             </div>
-            
-            {/* 3. Formulario: ahora es una columna flexible que ocupa el espacio restante. */}
-            <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-                {/* 4. Contenido del formulario: esta es la parte que crece y se hace desplazable si es necesario. */}
-                <div className="flex-1 overflow-y-auto p-8 pt-4 space-y-6">
-                    <div>
-                        <div className="flex items-center gap-6 mb-4">
-                            <label className="flex items-center gap-2"><input type="radio" name="tipo" value="individuo" checked={client.tipo === 'individuo'} onChange={handleTypeChange} /> Individuo</label>
-                            <label className="flex items-center gap-2"><input type="radio" name="tipo" value="compañia" checked={client.tipo === 'compañia'} onChange={handleTypeChange} /> Compañía</label>
-                        </div>
-                        <input type="text" name="nombre" value={client.nombre} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'ej. Jabones SAS' : 'ej. Luis Mojica'} className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg text-xl" required />
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <div className="flex items-center gap-6 mb-4">
+                        <label className="flex items-center gap-2"><input type="radio" name="tipo" value="persona" checked={client.tipo === 'persona'} onChange={handleTypeChange} /> Persona</label>
+                        <label className="flex items-center gap-2"><input type="radio" name="tipo" value="compañia" checked={client.tipo === 'compañia'} onChange={handleTypeChange} /> Compañía</label>
                     </div>
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <input type="email" name="email" value={client.email} onChange={handleChange} placeholder="Correo electrónico" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                        <input type="tel" name="telefono" value={client.telefono} onChange={handleChange} placeholder="Teléfono" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                    {/* --- ¡CAMBIO 2! --- */}
+                    {/* Este es ahora el campo de entrada principal para 'nombre'. */}
+                    <input type="text" 
+                           name="nombre"
+                           value={client.nombre} 
+                           onChange={handleChange} 
+                           placeholder={client.tipo === 'compañia' ? 'Nombre de la Compañía *' : 'Nombre Completo de la Persona *'} 
+                           className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg text-xl" required />
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <input type="email" name="email" value={client.email} onChange={handleChange} placeholder="Correo electrónico" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                    <input type="tel" name="telefono" value={client.telefono} onChange={handleChange} placeholder="Teléfono" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                </div>
+                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 pt-4">
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold text-gray-400">Dirección</h2>
+                        <input type="text" name="direccion.calle" value={client.direccion.calle} onChange={handleChange} placeholder="Calle..." className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <input type="text" name="direccion.ciudad" value={client.direccion.ciudad} onChange={handleChange} placeholder="Ciudad" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                            <input type="text" name="direccion.departamento" value={client.direccion.departamento} onChange={handleChange} placeholder="Departamento" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                        </div>
+                        <input type="text" name="direccion.pais" value={client.direccion.pais} onChange={handleChange} placeholder="País" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
                     </div>
-                    <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 pt-4">
-                        <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-gray-400">Dirección</h2>
-                            <input type="text" name="direccion.calle" value={client.direccion.calle} onChange={handleChange} placeholder="Calle..." className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                            <div className="grid sm:grid-cols-2 gap-4">
-                                <input type="text" name="direccion.ciudad" value={client.direccion.ciudad} onChange={handleChange} placeholder="Ciudad" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                                <input type="text" name="direccion.departamento" value={client.direccion.departamento} onChange={handleChange} placeholder="Departamento" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                            </div>
-                            <input type="text" name="direccion.pais" value={client.direccion.pais} onChange={handleChange} placeholder="País" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                        </div>
-                        <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-gray-400">Detalles Adicionales</h2>
-                            {client.tipo === 'individuo' && (
-                                <>
-                                    <input type="text" name="nombreCompania" value={client.nombreCompania} onChange={handleChange} placeholder="Nombre de la empresa" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                                    <input type="text" name="puestoTrabajo" value={client.puestoTrabajo} onChange={handleChange} placeholder="Puesto de trabajo" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                                </>
-                            )}
-                            <input type="text" name="identificacionNumero" value={client.identificacionNumero} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'NIT' : 'Número de Identificación'} className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                            <input type="url" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web (https://...)" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
-                        </div>
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold text-gray-400">Detalles Adicionales</h2>
+                         {/* --- ¡CAMBIO 3! --- */}
+                         {/* Ahora los campos adicionales son 'nombreContacto' y 'puestoTrabajo' */}
+                         {client.tipo === 'compañia' && (
+                            <>
+                                <input type="text" name="nombreContacto" value={client.nombreContacto} onChange={handleChange} placeholder="Nombre del Contacto" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                                <input type="text" name="puestoTrabajo" value={client.puestoTrabajo} onChange={handleChange} placeholder="Puesto del Contacto" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                            </>
+                        )}
+                        <input type="text" name="identificacionNumero" value={client.identificacionNumero} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'NIT' : 'Número de Identificación'} className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                        {client.tipo === 'compañia' && (
+                           <input type="url" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web (https://...)" className="w-full px-4 py-3 bg-gray-700 border-gray-600 rounded-lg" />
+                        )}
                     </div>
                 </div>
-                {/* 5. Pie de página del formulario: se encoge para ocupar solo su espacio. */}
-                <div className="flex-shrink-0 p-8 pt-6 flex items-center justify-end gap-4 border-t border-slate-700">
+                <div className="pt-6 flex items-center justify-end gap-4">
                     <div className="text-sm font-medium text-gray-400 flex-grow">{status}</div>
                     <Button type="button" variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
                     <Button type="submit">{isEditMode ? 'Actualizar' : 'Guardar'}</Button>

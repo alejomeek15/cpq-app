@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 import ConditionsList from './ConditionsList.jsx';
 import ConditionForm from './ConditionForm.jsx';
 import AlertDialog from '@/componentes/comunes/AlertDialog.jsx';
+import Notification from '@/componentes/comunes/Notification.jsx';
+import { SidebarTrigger } from '@/ui/sidebar.jsx'; // <-- 1. IMPORTAMOS EL BOTÓN
 
 const SettingsPage = ({ db }) => {
-  const [view, setView] = useState('list'); // 'list' or 'form'
-  const [currentItem, setCurrentItem] = useState(null); // The item being edited
-  const [itemToDelete, setItemToDelete] = useState(null); // The ID of the item to delete
+  const [view, setView] = useState('list');
+  const [currentItem, setCurrentItem] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [conditions, setConditions] = useState([]); // State to hold the conditions
+  const [conditions, setConditions] = useState([]);
+  const [notification, setNotification] = useState(null);
 
   const handleAddNew = () => {
     setCurrentItem(null);
@@ -30,22 +33,35 @@ const SettingsPage = ({ db }) => {
     if (itemToDelete) {
       await deleteDoc(doc(db, "condicionesPago", itemToDelete));
       setItemToDelete(null);
-      // Trigger a re-fetch in ConditionsList by changing the view back
-      setView('list-refresh'); // A temporary state to force re-render
-      setTimeout(() => setView('list'), 0);
+      showListView('Condición de pago eliminada correctamente.');
     }
     setDialogOpen(false);
   };
 
-  const showListView = () => {
+  const showListView = (message = null) => {
     setCurrentItem(null);
     setView('list-refresh');
     setTimeout(() => setView('list'), 0);
+
+    if (message) {
+      setNotification({
+        type: 'success',
+        title: 'Éxito',
+        message: message
+      });
+    }
   };
 
   return (
     <div className="w-full">
-      <h1 className="text-2xl font-bold mb-8">Configuración</h1>
+      <Notification notification={notification} onDismiss={() => setNotification(null)} />
+      
+      {/* --- ¡CÓDIGO AÑADIDO AQUÍ! --- */}
+      {/* 2. Añadimos el SidebarTrigger al principio del layout de la página. */}
+      <SidebarTrigger />
+
+      {/* 3. Añadimos un margen superior al título para separarlo del botón. */}
+      <h1 className="text-2xl font-bold mt-4 mb-8">Configuración</h1>
 
       {view === 'list' || view === 'list-refresh' ? (
         <ConditionsList
@@ -53,15 +69,15 @@ const SettingsPage = ({ db }) => {
           onAddNew={handleAddNew}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          key={view} // Using key to force re-mount on 'list-refresh'
-          setConditions={setConditions} // Pass setter to update parent state
+          key={view}
+          setConditions={setConditions}
         />
       ) : (
         <ConditionForm
           db={db}
-          onBack={showListView}
+          onBack={(saved) => showListView(saved ? 'Condición de pago guardada correctamente.' : null)}
           condition={currentItem}
-          itemCount={conditions.length} // Pass the total item count for positioning
+          itemCount={conditions.length}
         />
       )}
 

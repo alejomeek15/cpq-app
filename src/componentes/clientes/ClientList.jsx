@@ -20,15 +20,12 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState([]);
 
-  // --- ¡CAMBIO 1! ---
-  // Nueva función para manejar la eliminación de un solo cliente.
   const handleDeleteClient = (clientId) => {
-    setItemsToDelete([clientId]); // Ponemos el único ID en el estado
-    setDialogOpen(true); // Abrimos el mismo diálogo de confirmación
+    setItemsToDelete([clientId]);
+    setDialogOpen(true);
   };
   
-  // Pasamos la nueva función a createColumns.
-  const columns = React.useMemo(() => createColumns(onEditClient, handleDeleteClient), [onEditClient]);
+  const columns = React.useMemo(() => createColumns(onEditClient, handleDeleteClient), [onEditClient, handleDeleteClient]);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -46,9 +43,11 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
-  // Esta función ahora se usa para la eliminación en lote desde la DataTable
+  // --- ¡FUNCIÓN CORREGIDA! ---
   const handleDeleteSelected = (selectedRows) => {
-    const idsToDelete = selectedRows.map(row => row.id);
+    // La DataTable nos pasa los objetos de fila completos.
+    // Extraemos el ID del objeto 'original' de cada fila.
+    const idsToDelete = selectedRows.map(row => row.original.id);
     setItemsToDelete(idsToDelete);
     setDialogOpen(true);
   };
@@ -56,7 +55,11 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
   const confirmDeletion = async () => {
     try {
       const batch = writeBatch(db);
-      itemsToDelete.forEach(id => batch.delete(doc(db, "clientes", id)));
+      itemsToDelete.forEach(id => {
+        if (id) { // Verificación de seguridad para evitar IDs undefined
+            batch.delete(doc(db, "clientes", id))
+        }
+      });
       await batch.commit();
       fetchClients();
       setNotification({ 
@@ -64,11 +67,12 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
           title: 'Operación exitosa', 
           message: `${itemsToDelete.length} cliente(s) eliminado(s).` 
       });
-      setDialogOpen(false);
-      setItemsToDelete([]);
     } catch (err) {
       setNotification({ type: 'error', title: 'Error', message: 'No se pudieron eliminar los clientes.' });
       console.error("Error deleting clients:", err);
+    } finally {
+      setDialogOpen(false);
+      setItemsToDelete([]);
     }
   };
 
@@ -105,9 +109,7 @@ const ClientList = ({ db, onEditClient, onAddNewClient, onImportClients, setNoti
             columns={columns}
             data={clients}
             filterColumn="nombre"
-            // --- ¡CAMBIO 2! ---
-            // Le pasamos la función para manejar la eliminación en lote.
-            onDeleteSelectedItems={(selectedRows) => handleDeleteSelected(selectedRows)}
+            onDeleteSelectedItems={handleDeleteSelected}
           />
         ) : (
           <CardView

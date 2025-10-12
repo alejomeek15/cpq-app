@@ -30,7 +30,6 @@ export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    // Nuevas funcionalidades añadidas:
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -58,11 +57,13 @@ export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }
           }
           className="max-w-sm bg-slate-800 border-slate-700"
         />
-        {/* El botón de eliminar solo aparece si hay filas seleccionadas */}
         {selectedRowCount > 0 && (
           <Button
             variant="destructive"
-            onClick={() => onDeleteSelectedItems(Object.keys(rowSelection))}
+            // --- ¡CAMBIO CLAVE AQUÍ! ---
+            // Ahora pasamos los objetos de fila completos, no solo los índices.
+            // Esto le da al componente padre toda la información que necesita.
+            onClick={() => onDeleteSelectedItems(table.getFilteredSelectedRowModel().rows)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Eliminar ({selectedRowCount})
@@ -70,7 +71,7 @@ export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }
         )}
       </div>
 
-      {/* --- La Tabla (sin cambios grandes) --- */}
+      {/* --- La Tabla --- */}
       <div className="rounded-md border border-slate-700">
         <Table>
           <TableHeader>
@@ -95,7 +96,7 @@ export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="border-slate-700"
+                  className="border-slate-700 data-[state=selected]:bg-slate-800"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
