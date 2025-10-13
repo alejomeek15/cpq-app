@@ -10,7 +10,7 @@ import Dashboard from '@/ui/dashboard.jsx';
 import ClientesPage from '@/componentes/clientes/ClientesPage.jsx';
 import CatalogoPage from '@/componentes/catalogo/CatalogoPage.jsx';
 import QuotesPage from '@/componentes/cotizador/QuotesPage.jsx';
-import SettingsPage from '@/componentes/configuracion/SettingsPage.jsx'; // <-- 1. IMPORTA LA NUEVA PÁGINA
+import SettingsPage from '@/componentes/configuracion/SettingsPage.jsx';
 
 // Configuración de Firebase (sin cambios)
 const firebaseConfig = window.firebaseConfig;
@@ -28,16 +28,17 @@ export default function App() {
   // Función para renderizar la página actual según la ruta
   const renderRoute = () => {
     switch (route) {
-      case 'dashboard': return <Dashboard navigate={setRoute} />;
+      // --- ¡CAMBIO AQUÍ! ---
+      // 1. Se añade la prop 'db' al Dashboard.
+      case 'dashboard': return <Dashboard db={db} navigate={setRoute} />;
+      
       case 'clients': return <ClientesPage db={db} navigate={setRoute} />;
       case 'catalog': return <CatalogoPage db={db} navigate={setRoute} />;
       case 'quotes': return <QuotesPage db={db} navigate={setRoute} />;
-      
-      // --- ¡CAMBIO AQUÍ! ---
-      // 2. Reemplaza el Placeholder por la nueva página de configuración.
       case 'settings': return <SettingsPage db={db} navigate={setRoute} />;
-
-      default: return <Dashboard navigate={setRoute} />;
+      
+      // 2. También se añade 'db' al caso por defecto.
+      default: return <Dashboard db={db} navigate={setRoute} />;
     }
   };
 
@@ -45,8 +46,6 @@ export default function App() {
     <SidebarProvider className="min-h-screen bg-gray-900 text-white">
       <AppSidebar navigate={setRoute} route={route} />
       
-      {/* El <main> es el contenedor del contenido principal. */}
-      {/* Tiene padding para darle espacio a todas las páginas. */}
       <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
         {renderRoute()}
       </main>
