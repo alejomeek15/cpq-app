@@ -1,52 +1,41 @@
 import React from 'react';
+import { format } from 'date-fns'; // <-- 1. Importamos la función de formato
+import { es } from 'date-fns/locale';   // <-- 2. Importamos el idioma español
 
-/**
- * Componente que renderiza la tarjeta específica para una cotización.
- */
 const QuoteCard = ({ quote }) => {
-  // Función para obtener el color del badge de estado
-  const getStatusStyle = (status = 'Borrador') => {
+  // Función de ayuda para los badges de estado
+  const getStatusBadge = (status = 'Borrador') => {
     const s = status.toLowerCase().replace(/\s/g, '-');
     const styles = {
-        'borrador': 'bg-blue-500 text-blue-100',
-        'enviada': 'bg-amber-500 text-amber-100',
-        'en-negociación': 'bg-purple-500 text-purple-100',
-        'aprobada': 'bg-green-500 text-green-100',
-        'rechazada': 'bg-red-500 text-red-100',
-        'vencida': 'bg-gray-600 text-gray-300',
+        'borrador': 'bg-blue-500/10 text-blue-400', 'aprobada': 'bg-green-500/10 text-green-400',
+        'rechazada': 'bg-red-500/10 text-red-400', 'enviada': 'bg-amber-500/10 text-amber-400',
+        'en-negociacion': 'bg-purple-500/10 text-purple-400', 'vencida': 'bg-gray-500/10 text-gray-400'
     };
-    return styles[s] || styles.borrador;
+    return `px-2 py-1 text-xs font-medium rounded-full ${styles[s] || 'bg-gray-500/10 text-gray-400'}`;
   };
 
-  // Formateador de moneda para un estilo consistente
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2 }).format(amount || 0);
-  };
-  
-  // Formateador de fecha
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'Sin fecha';
-    return timestamp.toDate().toLocaleDateString('es-CO', {
-        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-    });
-  };
+  // --- ¡CAMBIO CLAVE AQUÍ! ---
+  // 3. Formateamos la fecha de creación para que solo muestre el día, mes y año.
+  const formattedDate = quote.fechaCreacion 
+    ? format(quote.fechaCreacion.toDate(), 'PPP', { locale: es }) 
+    : 'Sin fecha';
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-md hover:bg-gray-700 transition-colors cursor-pointer h-full flex flex-col justify-between">
-      <div>
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-bold text-white truncate">{quote.clienteNombre || 'Sin Cliente'}</h3>
-          <span className="font-semibold text-white">{formatCurrency(quote.total)}</span>
+    <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 h-full flex flex-col justify-between cursor-pointer transition-colors hover:bg-slate-700">
+      {/* Cabecera de la tarjeta */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-bold text-white truncate">{quote.numero}</h3>
+          <p className="text-sm text-slate-400 truncate">{quote.clienteNombre}</p>
         </div>
-        <p className="text-sm text-gray-400">{quote.numero || 'S00000'}</p>
-        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-          {formatDate(quote.fechaCreacion)}
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </p>
+        <span className={getStatusBadge(quote.estado)}>{quote.estado}</span>
       </div>
-      <div className="text-right mt-4">
-        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusStyle(quote.estado)}`}>
-          {quote.estado || 'Borrador'}
+
+      {/* Pie de la tarjeta */}
+      <div className="mt-4 flex justify-between items-end">
+        <span className="text-xs text-slate-500">{formattedDate}</span>
+        <span className="font-semibold text-white">
+          ${(quote.total || 0).toFixed(2)}
         </span>
       </div>
     </div>

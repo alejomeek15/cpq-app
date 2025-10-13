@@ -5,12 +5,11 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuLabel,
-  DropdownMenuSeparator, // <-- Importamos el separador
+  DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
-// La función ahora también recibe un manejador para eliminar
 export const createColumns = (onEditClient, onDeleteClient) => [
   {
     id: "select",
@@ -40,6 +39,8 @@ export const createColumns = (onEditClient, onDeleteClient) => [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
+          {/* --- ¡CAMBIO 1! --- */}
+          {/* El encabezado ahora solo dice "Nombre". */}
           Nombre
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
@@ -59,11 +60,17 @@ export const createColumns = (onEditClient, onDeleteClient) => [
     },
   },
 
+  /* --- ¡CAMBIO 2! --- */
+  /* Se eliminó la columna "Contacto Principal" por completo. */
+
   { accessorKey: "email", header: "Email" },
   { accessorKey: "telefono", header: "Teléfono" },
-  { accessorFn: (row) => row.direccion?.pais, id: "pais", header: "País" },
+  {
+    accessorFn: (row) => row.direccion?.ciudad,
+    id: "ciudad",
+    header: "Ciudad",
+  },
   
-  // --- ¡CAMBIO AQUÍ! ---
   {
     id: "actions",
     cell: ({ row }) => {
@@ -82,7 +89,6 @@ export const createColumns = (onEditClient, onDeleteClient) => [
               Editar Cliente
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {/* 2. Añadimos el nuevo ítem para eliminar, con un color rojo */}
             <DropdownMenuItem 
               className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
               onClick={() => onDeleteClient(client.id)}

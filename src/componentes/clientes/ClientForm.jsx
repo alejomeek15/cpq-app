@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, addDoc, deleteDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
-
-// --- ¡NUEVAS IMPORTACIONES! ---
 import {
   Card,
   CardContent,
@@ -29,7 +27,6 @@ const ClientForm = ({ db, clientId, onBack }) => {
     const [status, setStatus] = useState('');
     const [isEditMode, setIsEditMode] = useState(false);
     
-    // (Toda la lógica de fetchClientData, handleChange, handleSubmit, etc. no cambia)
     const fetchClientData = useCallback(async () => {
         if (!clientId) {
             setIsEditMode(false);
@@ -107,7 +104,6 @@ const ClientForm = ({ db, clientId, onBack }) => {
 
     if (loading) return <p className="text-center">Cargando formulario...</p>;
 
-    // --- ¡AQUÍ ESTÁ LA NUEVA ESTRUCTURA CON CARD! ---
     return (
         <Card className="w-full max-w-4xl mx-auto">
             <CardHeader>
@@ -169,7 +165,9 @@ const ClientForm = ({ db, clientId, onBack }) => {
                             )}
                             <Input type="text" name="identificacionNumero" value={client.identificacionNumero} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'NIT' : 'Número de Identificación'} />
                             {client.tipo === 'compañia' && (
-                               <Input type="url" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web (https://...)" />
+                               // --- ¡CAMBIO AQUÍ! ---
+                               // Cambiamos 'type="url"' por 'type="text"' para eliminar la validación del navegador.
+                               <Input type="text" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web" />
                             )}
                         </div>
                     </div>

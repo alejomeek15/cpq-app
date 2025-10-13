@@ -4,9 +4,17 @@ import ConditionsList from './ConditionsList.jsx';
 import ConditionForm from './ConditionForm.jsx';
 import AlertDialog from '@/componentes/comunes/AlertDialog.jsx';
 import Notification from '@/componentes/comunes/Notification.jsx';
-import { SidebarTrigger } from '@/ui/sidebar.jsx'; // <-- 1. IMPORTAMOS EL BOTÓN
+import { SidebarTrigger } from '@/ui/sidebar.jsx';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/ui/breadcrumb.jsx";
 
-const SettingsPage = ({ db }) => {
+const SettingsPage = ({ db, navigate }) => {
   const [view, setView] = useState('list');
   const [currentItem, setCurrentItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -14,6 +22,7 @@ const SettingsPage = ({ db }) => {
   const [conditions, setConditions] = useState([]);
   const [notification, setNotification] = useState(null);
 
+  // --- LÓGICA COMPLETA DE LOS MANEJADORES ---
   const handleAddNew = () => {
     setCurrentItem(null);
     setView('form');
@@ -56,12 +65,27 @@ const SettingsPage = ({ db }) => {
     <div className="w-full">
       <Notification notification={notification} onDismiss={() => setNotification(null)} />
       
-      {/* --- ¡CÓDIGO AÑADIDO AQUÍ! --- */}
-      {/* 2. Añadimos el SidebarTrigger al principio del layout de la página. */}
-      <SidebarTrigger />
+      <div className="mb-8">
+        <SidebarTrigger />
+        <div className="mt-4">
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
+                            Dashboard
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage>Configuración</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
+        </div>
+      </div>
 
-      {/* 3. Añadimos un margen superior al título para separarlo del botón. */}
-      <h1 className="text-2xl font-bold mt-4 mb-8">Configuración</h1>
+      {/* El título ahora está después del breadcrumb */}
+      <h1 className="text-2xl font-bold mb-8">Gestión de Parámetros</h1>
 
       {view === 'list' || view === 'list-refresh' ? (
         <ConditionsList

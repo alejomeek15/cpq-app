@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
 import { obtenerSiguienteNumeroCotizacion } from '../../utils/firestoreUtils.js';
+
+// --- NUEVAS IMPORTACIONES ---
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card.jsx';
@@ -14,6 +16,7 @@ import {
   SelectValue,
 } from "@/ui/select.jsx";
 import { Trash2 } from 'lucide-react';
+import { DatePicker } from '@/ui/DatePicker.jsx';
 
 // --- Sub-componente para el Pop-up de Notificación (SOLO PARA ERRORES) ---
 const NotificationModal = ({ message, onClose }) => {
@@ -178,7 +181,14 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
 
 
 const QuoteForm = ({ db, quoteId, onBack }) => {
-    const [quote, setQuote] = useState({ numero: '', estado: 'Borrador', clienteId: '', vencimiento: '', condicionesPago: '', lineas: [] });
+    const [quote, setQuote] = useState({
+        numero: '',
+        estado: 'Borrador',
+        clienteId: '',
+        vencimiento: null, // <-- CAMBIO 1
+        condicionesPago: '',
+        lineas: [],
+    });
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
     const [paymentTerms, setPaymentTerms] = useState([]);
@@ -212,7 +222,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                         const data = quoteSnap.data();
                         setQuote({
                             ...data,
-                            vencimiento: data.vencimiento ? data.vencimiento.toDate().toISOString().split('T')[0] : '',
+                            // --- CAMBIO 2 ---
+                            vencimiento: data.vencimiento ? data.vencimiento.toDate() : null,
                             lineas: data.lineas || []
                         });
                     }
@@ -235,11 +246,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     }, [db, quoteId, fetchProducts]);
 
     const handleOpenProductForm = (productData) => {
-        if (typeof productData === 'string') {
-            setProductToEdit({ nombre: productData });
-        } else {
-            setProductToEdit(productData);
-        }
+        if (typeof productData === 'string') { setProductToEdit({ nombre: productData });
+        } else { setProductToEdit(productData); }
         setIsProductFormOpen(true);
     };
 
@@ -249,20 +257,12 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         if (newProduct) {
             fetchProducts().then(() => {
                 if (newProduct && newProduct.id) {
-                    const newLine = {
-                        productId: newProduct.id,
-                        productName: newProduct.nombre,
-                        quantity: 1,
-                        price: newProduct.precioBase || 0,
-                    };
+                    const newLine = { productId: newProduct.id, productName: newProduct.nombre, quantity: 1, price: newProduct.precioBase || 0, };
                     setQuote(prevQuote => {
                         const searchLineIndex = prevQuote.lineas.findIndex(line => line.productId === null);
                         const newLines = [...prevQuote.lineas];
-                        if (searchLineIndex > -1) {
-                            newLines[searchLineIndex] = newLine;
-                        } else {
-                            newLines.push(newLine);
-                        }
+                        if (searchLineIndex > -1) { newLines[searchLineIndex] = newLine;
+                        } else { newLines.push(newLine); }
                         return { ...prevQuote, lineas: newLines };
                     });
                 }
@@ -303,7 +303,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
             clienteId: quote.clienteId,
             clienteNombre: selectedClient?.nombre || 'N/A',
             condicionesPago: quote.condicionesPago,
-            vencimiento: quote.vencimiento ? Timestamp.fromDate(new Date(quote.vencimiento)) : null,
+            // --- CAMBIO 3 ---
+            vencimiento: quote.vencimiento ? Timestamp.fromDate(quote.vencimiento) : null,
             subtotal,
             impuestos: tax,
             total,
@@ -331,10 +332,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         const total = subtotal + tax;
         return { subtotal, tax, total };
     };
-
     const { subtotal, tax, total } = calculateTotals();
     const statusOptions = ["Borrador", "Enviada", "En negociación", "Aprobada", "Rechazada", "Vencida"];
-
     const handleAddToCart = (cart) => {
         const newLines = Object.entries(cart).map(([productId, quantity]) => {
             const product = products.find(p => p.id === productId);
@@ -348,38 +347,14 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
     return (
         <div className="space-y-8">
-            {errorNotification && (
-                <NotificationModal
-                    message={errorNotification.message}
-                    onClose={() => setErrorNotification(null)}
-                />
-            )}
-             {isCatalogOpen && (
-                <ProductCatalogModal
-                    products={products}
-                    onClose={() => setIsCatalogOpen(false)}
-                    onAddToCart={handleAddToCart}
-                    initialCart={quote.lineas.reduce((acc, line) => { if(line.productId) acc[line.productId] = line.quantity; return acc; }, {})}
-                />
-            )}
-            {isProductFormOpen && (
-                <ProductoForm
-                    db={db}
-                    product={productToEdit}
-                    onClose={handleCloseProductForm}
-                />
-            )}
+            {errorNotification && ( <NotificationModal message={errorNotification.message} onClose={() => setErrorNotification(null)} /> )}
+            {isCatalogOpen && ( <ProductCatalogModal products={products} onClose={() => setIsCatalogOpen(false)} onAddToCart={handleAddToCart} initialCart={quote.lineas.reduce((acc, line) => { if(line.productId) acc[line.productId] = line.quantity; return acc; }, {})} /> )}
+            {isProductFormOpen && ( <ProductoForm db={db} product={productToEdit} onClose={handleCloseProductForm} /> )}
 
             <div>
                 <Button variant="link" onClick={() => onBack(false)} className="p-0 h-auto mb-2 text-indigo-400">&larr; Volver a la lista</Button>
                 <div className="flex justify-between items-center">
-                    <input
-                        type="text"
-                        name="numero"
-                        value={quote.numero}
-                        readOnly
-                        className="text-4xl font-bold bg-transparent border-none focus:ring-0 p-0 h-auto"
-                    />
+                    <input type="text" name="numero" value={quote.numero} readOnly className="text-4xl font-bold bg-transparent border-none focus:ring-0 p-0 h-auto" />
                     <div className="flex items-center gap-2">
                         <Button variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
                         <Button onClick={handleSave}>Guardar Cotización</Button>
@@ -389,9 +364,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
             <div className="flex items-center border border-slate-700 rounded-lg p-1 max-w-max flex-wrap">
                 {statusOptions.map(status => (
-                    <Button key={status} variant={quote.estado === status ? "default" : "ghost"} size="sm" onClick={() => setQuote(prev => ({ ...prev, estado: status }))}>
-                        {status}
-                    </Button>
+                    <Button key={status} variant={quote.estado === status ? "default" : "ghost"} size="sm" onClick={() => setQuote(prev => ({ ...prev, estado: status }))}> {status} </Button>
                 ))}
             </div>
 
@@ -410,9 +383,14 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                                 </SelectContent>
                             </Select>
                         </div>
+                        {/* --- CAMBIO 4 --- */}
                         <div>
                             <label className="block text-sm font-medium mb-1">Vencimiento</label>
-                            <Input type="date" name="vencimiento" value={quote.vencimiento} onChange={handleInputChange} />
+                            <DatePicker
+                                date={quote.vencimiento}
+                                setDate={(date) => setQuote(prev => ({ ...prev, vencimiento: date }))}
+                                placeholder="dd/mm/aaaa"
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Condiciones de pago</label>
@@ -446,16 +424,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                                 <tr key={index} className="border-b border-slate-700">
                                     <td className="px-6 py-2">
                                         {line.productId === null ? (
-                                            <InlineProductSearch
-                                                products={products}
-                                                index={index}
-                                                onProductSelect={handleInlineProductSelect}
-                                                onCancel={cancelSearchLine}
-                                                onCreateNew={handleOpenProductForm}
-                                            />
-                                        ) : (
-                                            line.productName
-                                        )}
+                                            <InlineProductSearch products={products} index={index} onProductSelect={handleInlineProductSelect} onCancel={cancelSearchLine} onCreateNew={handleOpenProductForm} />
+                                        ) : ( line.productName )}
                                     </td>
                                     <td className="px-6 py-2"><Input type="number" value={line.quantity} onChange={e => handleLineChange(index, 'quantity', e.target.value)} className="text-center"/></td>
                                     <td className="px-6 py-2"><Input type="number" value={line.price} onChange={e => handleLineChange(index, 'price', e.target.value)} className="text-right"/></td>
