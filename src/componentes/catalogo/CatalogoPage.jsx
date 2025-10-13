@@ -1,62 +1,96 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import CatalogoList from './CatalogoList';
-import ProductoForm from './ProductoForm';
+import React, { useState } from 'react';
+import ProductList from './ProductList.jsx';
+import ProductTypeSelector from './ProductTypeSelector.jsx';
+import SimpleProductForm from './SimpleProductForm.jsx';
+import { SidebarTrigger } from '@/ui/sidebar.jsx';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/ui/breadcrumb.jsx";
+import {
+  Dialog,
+  DialogContent,
+} from "@/ui/dialog.jsx";
 
-// Componente principal que controla el módulo de Catálogo
 const CatalogoPage = ({ db, navigate }) => {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    // 'editingProduct' será null para crear, o un objeto de producto para editar
-    const [editingProduct, setEditingProduct] = useState(null);
+  const [view, setView] = useState('list'); // 'list', 'simple-form'
+  const [isTypeSelectorOpen, setIsTypeSelectorOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-    const fetchProducts = useCallback(async () => {
-        setLoading(true);
-        try {
-            const querySnapshot = await getDocs(collection(db, "productos"));
-            setProducts(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        } catch (error) {
-            console.error("Error al cargar productos:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [db]);
+  const handleProductClick = (product) => {
+    console.log("Selected Product:", product);
+    setSelectedProduct(product);
+    // Future: setView('details');
+  };
 
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
+  const handleAddNewProduct = () => {
+    setIsTypeSelectorOpen(true);
+  };
 
-    const handleOpenForm = (product = null) => {
-        setEditingProduct(product);
-        setIsFormOpen(true);
-    };
+  const handleTypeSelected = (type) => {
+    setIsTypeSelectorOpen(false);
+    if (type === 'simple') {
+      setView('simple-form');
+    }
+    // Future: handle 'composite' and 'kit'
+  };
 
-    const handleCloseForm = () => {
-        setIsFormOpen(false);
-        setEditingProduct(null);
-        fetchProducts(); // Recargar productos después de guardar/cerrar
-    };
+  const handleBackToList = () => {
+    setView('list');
+    setSelectedProduct(null);
+  };
 
-    return (
-        <div>
-            <CatalogoList
-                products={products}
-                loading={loading}
-                navigate={navigate}
-                onAddProduct={() => handleOpenForm(null)}
-                onEditProduct={handleOpenForm}
-            />
-            {isFormOpen && (
-                <ProductoForm
-                    db={db}
-                    product={editingProduct}
-                    onClose={handleCloseForm}
-                />
-            )}
+  const renderContent = () => {
+    switch (view) {
+      case 'simple-form':
+        // --- ¡CAMBIO CLAVE AQUÍ! ---
+        // Añadimos la prop db={db} al componente del formulario.
+        return <SimpleProductForm db={db} onBack={handleBackToList} onSave={handleBackToList} />;
+      
+      case 'list':
+      default:
+        return <ProductList 
+          db={db} 
+          onProductClick={handleProductClick} 
+          onAddNewProduct={handleAddNewProduct}
+        />;
+    }
+  };
+
+  return (
+    <div className="w-full">
+      <div className="mb-8">
+        <SidebarTrigger />
+        <div className="mt-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+                <BreadcrumbItem>
+                    <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
+                        Dashboard
+                    </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>Catálogo</BreadcrumbPage>
+                </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
-    );
+      </div>
+
+      {renderContent()}
+
+      <Dialog open={isTypeSelectorOpen} onOpenChange={setIsTypeSelectorOpen}>
+        <DialogContent>
+          <ProductTypeSelector onSelectType={handleTypeSelected} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 };
 
 export default CatalogoPage;
-
