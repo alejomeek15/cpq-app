@@ -15,10 +15,14 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Esta función es la que se encarga de rellenar el formulario.
+  // Se ejecuta cada vez que el componente recibe una 'condition' para editar.
   useEffect(() => {
     if (condition) {
+      // Si estamos editando, llena el campo con el nombre existente.
       setName(condition.nombre);
     } else {
+      // Si estamos creando una nueva, se asegura de que el campo esté vacío.
       setName('');
     }
   }, [condition]);
@@ -30,16 +34,19 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
     setLoading(true);
     try {
       if (condition) {
+        // Editar condición existente
         const docRef = doc(db, 'condicionesPago', condition.id);
         await updateDoc(docRef, { nombre: name });
       } else {
+        // Crear nueva condición
         const collectionRef = collection(db, 'condicionesPago');
         await addDoc(collectionRef, {
           nombre: name,
           posicion: itemCount,
+          activo: true, // <-- ¡CAMBIO! Se añade el estado 'activo' por defecto.
         });
       }
-      onBack(true); // Se guardó, envía 'true'
+      onBack(true);
     } catch (error) {
       console.error("Error al guardar la condición:", error);
       setLoading(false);
@@ -71,8 +78,6 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-          {/* --- ¡AQUÍ ESTÁ LA CORRECCIÓN DEFINITIVA! --- */}
-          {/* Envolvemos onBack en una función de flecha para que se llame SIN argumentos. */}
           <Button type="button" variant="ghost" onClick={() => onBack()}>
             Cancelar
           </Button>

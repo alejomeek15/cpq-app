@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+// --- ¡CAMBIO 1! --- Se añaden 'query' y 'where' para filtrar la consulta
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp, query, where } from 'firebase/firestore';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
 import { obtenerSiguienteNumeroCotizacion } from '../../utils/firestoreUtils.js';
-
-// --- NUEVAS IMPORTACIONES ---
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card.jsx';
@@ -185,7 +184,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         numero: '',
         estado: 'Borrador',
         clienteId: '',
-        vencimiento: null, // <-- CAMBIO 1
+        vencimiento: null,
         condicionesPago: '',
         lineas: [],
     });
@@ -207,10 +206,15 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         async function loadInitialData() {
             setLoading(true);
             try {
+                // --- ¡CAMBIO 2! ---
+                // Creamos una consulta para obtener solo las condiciones de pago activas.
+                const paymentTermsQuery = query(collection(db, "condicionesPago"), where("activo", "==", true));
+
                 const [clientsSnap, termsSnap] = await Promise.all([
                     getDocs(collection(db, "clientes")),
-                    getDocs(collection(db, "condicionesPago"))
+                    getDocs(paymentTermsQuery) // Usamos la nueva consulta filtrada
                 ]);
+                
                 setClients(clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                 setPaymentTerms(termsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                 await fetchProducts();
@@ -222,7 +226,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                         const data = quoteSnap.data();
                         setQuote({
                             ...data,
-                            // --- CAMBIO 2 ---
                             vencimiento: data.vencimiento ? data.vencimiento.toDate() : null,
                             lineas: data.lineas || []
                         });
@@ -303,7 +306,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
             clienteId: quote.clienteId,
             clienteNombre: selectedClient?.nombre || 'N/A',
             condicionesPago: quote.condicionesPago,
-            // --- CAMBIO 3 ---
             vencimiento: quote.vencimiento ? Timestamp.fromDate(quote.vencimiento) : null,
             subtotal,
             impuestos: tax,
@@ -352,7 +354,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
             {isProductFormOpen && ( <ProductoForm db={db} product={productToEdit} onClose={handleCloseProductForm} /> )}
 
             <div>
-                <Button variant="link" onClick={() => onBack(false)} className="p-0 h-auto mb-2 text-indigo-400">&larr; Volver a la lista</Button>
                 <div className="flex justify-between items-center">
                     <input type="text" name="numero" value={quote.numero} readOnly className="text-4xl font-bold bg-transparent border-none focus:ring-0 p-0 h-auto" />
                     <div className="flex items-center gap-2">
@@ -383,7 +384,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                                 </SelectContent>
                             </Select>
                         </div>
-                        {/* --- CAMBIO 4 --- */}
                         <div>
                             <label className="block text-sm font-medium mb-1">Vencimiento</label>
                             <DatePicker

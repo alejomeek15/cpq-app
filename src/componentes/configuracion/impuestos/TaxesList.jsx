@@ -1,26 +1,44 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, writeBatch, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, query, orderBy, updateDoc } from 'firebase/firestore'; // <-- Importa updateDoc
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/ui/button.jsx';
 import { Table, TableBody, TableHeader, TableRow, TableHead } from '@/ui/table.jsx';
 import { DraggableTableRow } from '../condiciones/DraggableTableRow.jsx';
 import { createColumns } from './columns.jsx';
-
-// --- ¡NUEVAS IMPORTACIONES! ---
 import CardView from '@/componentes/comunes/CardView.jsx';
 import TaxCard from './TaxCard.jsx';
 
-// --- Iconos para el selector de vista ---
 const ListIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 9a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 14a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"></path></svg>;
 const KanbanIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>;
 
 const TaxesList = ({ db, onAddNew, onEdit, onDelete, setTaxes }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('list'); // <-- 1. Añadimos el estado de la vista
+  const [view, setView] = useState('list');
 
-  const columns = React.useMemo(() => createColumns(onEdit, onDelete), [onEdit, onDelete]);
+  // --- ¡NUEVA FUNCIÓN! ---
+  // Se ejecuta cuando el usuario hace clic en un Switch.
+  const handleToggleActive = useCallback(async (id, newStatus) => {
+    // Actualización optimista de la UI
+    setItems(currentItems =>
+      currentItems.map(item =>
+        item.id === id ? { ...item, activo: newStatus } : item
+      )
+    );
+    // Guarda el cambio en Firestore
+    try {
+      const docRef = doc(db, "impuestos", id);
+      await updateDoc(docRef, { activo: newStatus });
+    } catch (error) {
+      console.error("Error al actualizar el estado:", error);
+      fetchData(); // Recargamos para asegurar consistencia si hay error
+    }
+  }, [db]); // Dependencia de 'db'
+
+  // Pasamos la nueva función a las columnas
+  const columns = React.useMemo(() => createColumns(onEdit, onDelete, handleToggleActive), [onEdit, onDelete, handleToggleActive]);
+  
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const fetchData = useCallback(async () => {
@@ -59,7 +77,6 @@ const TaxesList = ({ db, onAddNew, onEdit, onDelete, setTaxes }) => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Impuestos</h2>
         <div className="flex items-center gap-4">
-            {/* 2. Añadimos el selector de vista */}
             <div className="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
               <button onClick={() => setView('list')} className={`p-1.5 rounded-md ${view === 'list' ? 'bg-slate-700' : 'text-slate-400 hover:text-white'}`}><ListIcon /></button>
               <button onClick={() => setView('kanban')} className={`p-1.5 rounded-md ${view === 'kanban' ? 'bg-slate-700' : 'text-slate-400 hover:text-white'}`}><KanbanIcon /></button>
@@ -68,7 +85,6 @@ const TaxesList = ({ db, onAddNew, onEdit, onDelete, setTaxes }) => {
         </div>
       </div>
 
-      {/* 3. Añadimos el renderizado condicional */}
       {view === 'list' ? (
         <div className="rounded-md border border-slate-700">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

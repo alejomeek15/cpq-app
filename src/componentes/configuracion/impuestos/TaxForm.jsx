@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
-import { Textarea } from '@/ui/textarea.jsx'; // <-- Importamos Textarea
+import { Textarea } from '@/ui/textarea.jsx';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/ui/card.jsx";
 
 const TaxForm = ({ onBack, db, tax, itemCount }) => {
@@ -11,7 +11,9 @@ const TaxForm = ({ onBack, db, tax, itemCount }) => {
 
   useEffect(() => {
     if (tax) {
-      setFormData({ nombre: tax.nombre, descripcion: tax.descripcion });
+      setFormData({ nombre: tax.nombre, descripcion: tax.descripcion || '' });
+    } else {
+      setFormData({ nombre: '', descripcion: '' });
     }
   }, [tax]);
 
@@ -30,7 +32,13 @@ const TaxForm = ({ onBack, db, tax, itemCount }) => {
         await updateDoc(docRef, { nombre: formData.nombre, descripcion: formData.descripcion });
       } else {
         const collectionRef = collection(db, 'impuestos');
-        await addDoc(collectionRef, { ...formData, posicion: itemCount });
+        // --- ¡CAMBIO AQUÍ! ---
+        // Añadimos 'activo: true' al objeto que se guarda.
+        await addDoc(collectionRef, { 
+          ...formData, 
+          posicion: itemCount,
+          activo: true 
+        });
       }
       onBack(true);
     } catch (error) {

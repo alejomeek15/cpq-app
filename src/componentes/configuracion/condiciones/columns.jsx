@@ -1,4 +1,5 @@
 import { Button } from "@/ui/button.jsx";
+import { Switch } from "@/ui/switch.jsx"; // <-- 1. Importamos el componente Switch
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,9 +11,8 @@ import {
 import { GripVertical, MoreHorizontal } from "lucide-react";
 import { TableCell } from '@/ui/table.jsx';
 
-// La función ahora recibe manejadores para editar y eliminar
-export const createColumns = (onEdit, onDelete) => [
-  // Columna para el control de arrastre (Handle)
+// La función ahora también recibe un manejador para el switch
+export const createColumns = (onEdit, onDelete, onToggleActive) => [
   {
     id: 'drag-handle',
     header: '',
@@ -23,13 +23,10 @@ export const createColumns = (onEdit, onDelete) => [
     ),
   },
   
-  // --- ¡CAMBIO AQUÍ! ---
-  // Columna de Nombre
   {
     id: "nombre",
     accessorKey: "nombre",
     header: "Nombre",
-    // Ahora la celda es un botón que llama a la función 'onEdit'
     cell: ({ row }) => {
         const condition = row.original;
         return (
@@ -46,11 +43,30 @@ export const createColumns = (onEdit, onDelete) => [
     },
   },
   
-  // Columna de Acciones
+  // --- ¡NUEVA COLUMNA "ACTIVO"! ---
+  {
+    id: "activo",
+    header: "Activo",
+    cell: ({ row }) => {
+      const condition = row.original;
+      return (
+        <TableCell>
+          <Switch
+            // El estado del switch se basa en el campo 'activo' del documento
+            checked={!!condition.activo} 
+            // Cuando cambia, llamamos a la función que nos pasaron
+            onCheckedChange={(newStatus) => onToggleActive(condition.id, newStatus)}
+          />
+        </TableCell>
+      );
+    },
+  },
+
   {
     id: "actions",
     header: () => <div className="text-right">Acciones</div>,
     cell: ({ row }) => {
+      // ... (código del menú de acciones sin cambios)
       const condition = row.original;
       return (
         <TableCell className="text-right">

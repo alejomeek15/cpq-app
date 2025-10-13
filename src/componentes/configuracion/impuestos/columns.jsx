@@ -1,4 +1,5 @@
 import { Button } from "@/ui/button.jsx";
+import { Switch } from "@/ui/switch.jsx";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,7 +11,7 @@ import {
 import { GripVertical, MoreHorizontal } from "lucide-react";
 import { TableCell } from '@/ui/table.jsx';
 
-export const createColumns = (onEdit, onDelete) => [
+export const createColumns = (onEdit, onDelete, onToggleActive) => [
   {
     id: 'drag-handle',
     header: '',
@@ -24,13 +25,43 @@ export const createColumns = (onEdit, onDelete) => [
     id: "nombre",
     accessorKey: "nombre",
     header: "Nombre",
-    cell: ({ row }) => <TableCell className="font-medium">{row.original.nombre}</TableCell>,
+    // --- ¡CAMBIO AQUÍ! ---
+    // Ahora la celda es un botón clickeable que llama a 'onEdit'.
+    cell: ({ row }) => {
+        const tax = row.original;
+        return (
+            <TableCell>
+                <Button 
+                    variant="link" 
+                    className="p-0 h-auto font-medium text-white hover:text-indigo-400"
+                    onClick={() => onEdit(tax)}
+                >
+                    {tax.nombre}
+                </Button>
+            </TableCell>
+        );
+    },
   },
   {
     id: "descripcion",
     accessorKey: "descripcion",
     header: "Descripción",
     cell: ({ row }) => <TableCell className="text-slate-400">{row.original.descripcion}</TableCell>,
+  },
+  {
+    id: "activo",
+    header: "Activo",
+    cell: ({ row }) => {
+      const tax = row.original;
+      return (
+        <TableCell>
+          <Switch
+            checked={!!tax.activo} 
+            onCheckedChange={(newStatus) => onToggleActive(tax.id, newStatus)}
+          />
+        </TableCell>
+      );
+    },
   },
   {
     id: "actions",

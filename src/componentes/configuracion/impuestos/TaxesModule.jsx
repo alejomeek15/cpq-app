@@ -12,6 +12,7 @@ const TaxesModule = ({ db }) => {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [taxes, setTaxes] = useState([]);
   const [notification, setNotification] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0); // <-- 1. AÑADIMOS EL ESTADO DE REFRESCO
 
   const handleAddNew = () => {
     setCurrentItem(null);
@@ -32,6 +33,8 @@ const TaxesModule = ({ db }) => {
     if (itemToDelete) {
       await deleteDoc(doc(db, "impuestos", itemToDelete));
       setItemToDelete(null);
+      // 2. ACTUALIZAMOS LA LLAVE PARA FORZAR EL REFRESCO EN EL HIJO
+      setRefreshKey(prevKey => prevKey + 1);
       showListView('Impuesto eliminado correctamente.');
     }
     setDialogOpen(false);
@@ -39,8 +42,7 @@ const TaxesModule = ({ db }) => {
 
   const showListView = (message = null) => {
     setCurrentItem(null);
-    setView('list-refresh');
-    setTimeout(() => setView('list'), 0);
+    setView('list'); // Ya no necesitamos el truco de 'list-refresh'
     if (message) {
       setNotification({ type: 'success', title: 'Éxito', message });
     }
@@ -49,14 +51,14 @@ const TaxesModule = ({ db }) => {
   return (
     <div>
       <Notification notification={notification} onDismiss={() => setNotification(null)} />
-      {view === 'list' || view === 'list-refresh' ? (
+      {view === 'list' ? (
         <TaxesList
           db={db}
           onAddNew={handleAddNew}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          key={view}
           setTaxes={setTaxes}
+          key={refreshKey} // <-- 3. USAMOS LA LLAVE PARA FORZAR EL RE-RENDERIZADO
         />
       ) : (
         <TaxForm
