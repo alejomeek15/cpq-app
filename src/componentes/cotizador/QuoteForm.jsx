@@ -2,6 +2,18 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
 import { obtenerSiguienteNumeroCotizacion } from '../../utils/firestoreUtils.js';
+import { Button } from '@/ui/button.jsx';
+import { Input } from '@/ui/input.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card.jsx';
+import { Separator } from '@/ui/separator.jsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/ui/select.jsx";
+import { Trash2 } from 'lucide-react';
 
 // --- Sub-componente para el Pop-up de Notificación (SOLO PARA ERRORES) ---
 const NotificationModal = ({ message, onClose }) => {
@@ -12,8 +24,8 @@ const NotificationModal = ({ message, onClose }) => {
                     <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <h2 className="text-2xl font-bold mb-4">{message}</h2>
-                <button 
-                    onClick={onClose} 
+                <button
+                    onClick={onClose}
                     className="w-full text-white px-6 py-3 rounded-lg font-semibold bg-red-600 hover:bg-red-700">
                     Aceptar
                 </button>
@@ -85,7 +97,7 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
     const [results, setResults] = useState([]);
     const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
     const inputRef = useRef(null);
-    const searchRef = useRef(null); 
+    const searchRef = useRef(null);
 
     const updatePosition = useCallback(() => {
         if (inputRef.current) {
@@ -121,7 +133,7 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
         const newQuery = e.target.value;
         setQuery(newQuery);
         if (newQuery.length > 0) {
-            setResults(products.filter(p => 
+            setResults(products.filter(p =>
                 p.nombre.toLowerCase().includes(newQuery.toLowerCase()) ||
                 (p.sku && p.sku.toLowerCase().includes(newQuery.toLowerCase()))
             ));
@@ -133,20 +145,19 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
     const selectProduct = (product) => {
         onProductSelect(index, product);
     };
-    
+
     return (
         <div ref={searchRef}>
-            <input 
+            <Input
                 ref={inputRef}
                 type="text"
                 value={query}
                 onChange={handleQueryChange}
                 placeholder="Buscar producto..."
-                className="w-full bg-gray-700 rounded p-1"
                 autoFocus
             />
             {(results.length > 0 || query.length > 0) && (
-                <div 
+                <div
                     className="fixed z-20 bg-gray-900 border border-gray-600 rounded-lg max-h-60 overflow-y-auto shadow-lg"
                     style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px` }}
                 >
@@ -167,14 +178,7 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
 
 
 const QuoteForm = ({ db, quoteId, onBack }) => {
-    const [quote, setQuote] = useState({
-        numero: '',
-        estado: 'Borrador',
-        clienteId: '',
-        vencimiento: '',
-        condicionesPago: '',
-        lineas: [],
-    });
+    const [quote, setQuote] = useState({ numero: '', estado: 'Borrador', clienteId: '', vencimiento: '', condicionesPago: '', lineas: [] });
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
     const [paymentTerms, setPaymentTerms] = useState([]);
@@ -182,8 +186,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
     const [isProductFormOpen, setIsProductFormOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
-    
-    // --- ¡CAMBIO 1! --- Solo necesitamos un estado para los errores.
     const [errorNotification, setErrorNotification] = useState(null);
 
     const fetchProducts = useCallback(async () => {
@@ -208,8 +210,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                     const quoteSnap = await getDoc(quoteRef);
                     if (quoteSnap.exists()) {
                         const data = quoteSnap.data();
-                        setQuote({ 
-                            ...data, 
+                        setQuote({
+                            ...data,
                             vencimiento: data.vencimiento ? data.vencimiento.toDate().toISOString().split('T')[0] : '',
                             lineas: data.lineas || []
                         });
@@ -219,19 +221,19 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                     if (formattedNumber) {
                         setQuote(prev => ({ ...prev, numero: formattedNumber }));
                     } else {
-                        setErrorNotification({ message: "No se pudo generar un número de cotización."});
+                        setErrorNotification({ message: "No se pudo generar un número de cotización." });
                     }
                 }
             } catch (error) {
                 console.error("Error loading data:", error);
-                setErrorNotification({ message: "Error al cargar los datos iniciales."});
+                setErrorNotification({ message: "Error al cargar los datos iniciales." });
             } finally {
                 setLoading(false);
             }
         }
         loadInitialData();
     }, [db, quoteId, fetchProducts]);
-    
+
     const handleOpenProductForm = (productData) => {
         if (typeof productData === 'string') {
             setProductToEdit({ nombre: productData });
@@ -245,7 +247,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         setIsProductFormOpen(false);
         setProductToEdit(null);
         if (newProduct) {
-             fetchProducts().then(() => {
+            fetchProducts().then(() => {
                 if (newProduct && newProduct.id) {
                     const newLine = {
                         productId: newProduct.id,
@@ -264,7 +266,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                         return { ...prevQuote, lineas: newLines };
                     });
                 }
-             });
+            });
         }
     };
 
@@ -287,17 +289,14 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     };
     const cancelSearchLine = (index) => setQuote(prev => ({ ...prev, lineas: prev.lineas.filter((_, i) => i !== index) }));
     const removeLine = (index) => setQuote(prev => ({ ...prev, lineas: prev.lineas.filter((_, i) => i !== index) }));
-    
 
     const handleSave = async () => {
         if (!quote.clienteId) {
-            setErrorNotification({message: "Por favor, selecciona un cliente."});
+            setErrorNotification({ message: "Por favor, selecciona un cliente." });
             return;
         }
-
         const { subtotal, tax, total } = calculateTotals();
         const selectedClient = clients.find(c => c.id === quote.clienteId);
-
         const quoteData = {
             numero: quote.numero,
             estado: quote.estado,
@@ -311,7 +310,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
             lineas: quote.lineas.filter(line => line.productId),
             fechaActualizacion: serverTimestamp()
         };
-
         try {
             if (quoteId) {
                 const quoteRef = doc(db, "cotizaciones", quoteId);
@@ -320,159 +318,170 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                 quoteData.fechaCreacion = serverTimestamp();
                 await addDoc(collection(db, "cotizaciones"), quoteData);
             }
-            // --- ¡CAMBIO 2! --- Inmediatamente después de guardar, volvemos a la lista.
             onBack(true);
         } catch (error) {
             console.error("Error al guardar la cotización: ", error);
-            setErrorNotification({message: "Error al guardar. Revisa la consola."});
+            setErrorNotification({ message: "Error al guardar. Revisa la consola." });
         }
     };
-    
+
     const calculateTotals = () => {
         const subtotal = quote.lineas.reduce((acc, line) => acc + (parseFloat(line.quantity || 0) * parseFloat(line.price || 0)), 0);
-        const tax = subtotal * 0.19; // IVA del 19%
+        const tax = subtotal * 0.19;
         const total = subtotal + tax;
         return { subtotal, tax, total };
     };
 
     const { subtotal, tax, total } = calculateTotals();
     const statusOptions = ["Borrador", "Enviada", "En negociación", "Aprobada", "Rechazada", "Vencida"];
-    
+
     const handleAddToCart = (cart) => {
         const newLines = Object.entries(cart).map(([productId, quantity]) => {
             const product = products.find(p => p.id === productId);
             return { productId, productName: product.nombre, quantity, price: product.precioBase || 0 };
         });
-        setQuote(prev => ({...prev, lineas: newLines }));
+        setQuote(prev => ({ ...prev, lineas: newLines }));
         setIsCatalogOpen(false);
     };
 
     if (loading) return <p className="text-center">Cargando cotización...</p>;
 
     return (
-        <div>
-            {/* --- ¡CAMBIO 3! --- Eliminamos el InfoDialog. Solo renderizamos el modal de error. */}
+        <div className="space-y-8">
             {errorNotification && (
-                <NotificationModal 
+                <NotificationModal
                     message={errorNotification.message}
                     onClose={() => setErrorNotification(null)}
                 />
             )}
-
              {isCatalogOpen && (
-                <ProductCatalogModal 
-                    products={products} 
+                <ProductCatalogModal
+                    products={products}
                     onClose={() => setIsCatalogOpen(false)}
                     onAddToCart={handleAddToCart}
                     initialCart={quote.lineas.reduce((acc, line) => { if(line.productId) acc[line.productId] = line.quantity; return acc; }, {})}
                 />
             )}
             {isProductFormOpen && (
-                <ProductoForm 
+                <ProductoForm
                     db={db}
                     product={productToEdit}
                     onClose={handleCloseProductForm}
                 />
             )}
-            
-            <button onClick={() => onBack(false)} className="text-sm text-indigo-400 hover:underline mb-2 block">&larr; Volver</button>
-            
-            <div className="flex justify-between items-center mb-4">
-                <input 
-                    type="text"
-                    name="numero"
-                    value={quote.numero}
-                    readOnly 
-                    className="text-4xl font-bold bg-transparent border-none focus:ring-0 p-0"
-                />
-                <div className="flex items-center gap-2">
-                    <button onClick={() => onBack(false)} className="bg-gray-700 px-4 py-2 rounded-lg font-semibold">Cancelar</button>
-                    <button onClick={handleSave} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700">Guardar</button>
+
+            <div>
+                <Button variant="link" onClick={() => onBack(false)} className="p-0 h-auto mb-2 text-indigo-400">&larr; Volver a la lista</Button>
+                <div className="flex justify-between items-center">
+                    <input
+                        type="text"
+                        name="numero"
+                        value={quote.numero}
+                        readOnly
+                        className="text-4xl font-bold bg-transparent border-none focus:ring-0 p-0 h-auto"
+                    />
+                    <div className="flex items-center gap-2">
+                        <Button variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
+                        <Button onClick={handleSave}>Guardar Cotización</Button>
+                    </div>
                 </div>
             </div>
 
-            <div className="mb-6 flex items-center border border-gray-600 rounded-lg p-1 max-w-max flex-wrap">
+            <div className="flex items-center border border-slate-700 rounded-lg p-1 max-w-max flex-wrap">
                 {statusOptions.map(status => (
-                    <button key={status} onClick={() => setQuote(prev => ({...prev, estado: status}))}
-                        className={`px-3 py-1 text-sm font-medium rounded-md ${quote.estado === status ? 'bg-indigo-600 text-white' : 'text-gray-300'}`}>
+                    <Button key={status} variant={quote.estado === status ? "default" : "ghost"} size="sm" onClick={() => setQuote(prev => ({ ...prev, estado: status }))}>
                         {status}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
-            <div className="bg-gray-800 p-6 rounded-lg shadow-md my-8">
-                 <div className="grid md:grid-cols-3 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Cliente</label>
-                        <select name="clienteId" value={quote.clienteId} onChange={handleInputChange} className="w-full rounded-md bg-gray-700 border-transparent">
-                            <option value="">Selecciona un cliente</option>
-                            {clients.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                        </select>
+            <Card className="bg-transparent border-none">
+                 <CardHeader className="p-0 mb-4">
+                    <CardTitle>Información Principal</CardTitle>
+                 </CardHeader>
+                 <CardContent className="p-6 bg-card rounded-lg border border-border">
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Cliente</label>
+                            <Select name="clienteId" value={quote.clienteId} onValueChange={(value) => handleInputChange({ target: { name: 'clienteId', value } })}>
+                                <SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger>
+                                <SelectContent>
+                                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Vencimiento</label>
+                            <Input type="date" name="vencimiento" value={quote.vencimiento} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Condiciones de pago</label>
+                            <Select name="condicionesPago" value={quote.condicionesPago} onValueChange={(value) => handleInputChange({ target: { name: 'condicionesPago', value } })}>
+                                <SelectTrigger><SelectValue placeholder="Selecciona una condición" /></SelectTrigger>
+                                <SelectContent>
+                                    {paymentTerms.map(pt => <SelectItem key={pt.id} value={pt.nombre}>{pt.nombre}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Vencimiento</label>
-                        <input type="date" name="vencimiento" value={quote.vencimiento} onChange={handleInputChange} className="w-full rounded-md bg-gray-700 border-transparent" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Condiciones de pago</label>
-                        <select name="condicionesPago" value={quote.condicionesPago} onChange={handleInputChange} className="w-full rounded-md bg-gray-700 border-transparent">
-                            <option value="">Selecciona una condición</option>
-                            {paymentTerms.map(pt => <option key={pt.id} value={pt.nombre}>{pt.nombre}</option>)}
-                        </select>
-                    </div>
+                 </CardContent>
+            </Card>
+
+            <div>
+                <h2 className="text-xl font-bold mb-4">Líneas de Cotización</h2>
+                <div className="overflow-x-auto bg-card rounded-lg border border-border shadow">
+                     <table className="w-full text-sm text-left">
+                        <thead className="text-xs uppercase bg-slate-800">
+                            <tr>
+                                <th className="px-6 py-3">Producto</th>
+                                <th className="px-6 py-3 w-24">Cantidad</th>
+                                <th className="px-6 py-3 w-40">Precio Unitario</th>
+                                <th className="px-6 py-3 w-32">Impuestos</th>
+                                <th className="px-6 py-3 w-40 text-right">Importe</th>
+                                <th className="px-2 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {quote.lineas.map((line, index) => (
+                                <tr key={index} className="border-b border-slate-700">
+                                    <td className="px-6 py-2">
+                                        {line.productId === null ? (
+                                            <InlineProductSearch
+                                                products={products}
+                                                index={index}
+                                                onProductSelect={handleInlineProductSelect}
+                                                onCancel={cancelSearchLine}
+                                                onCreateNew={handleOpenProductForm}
+                                            />
+                                        ) : (
+                                            line.productName
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-2"><Input type="number" value={line.quantity} onChange={e => handleLineChange(index, 'quantity', e.target.value)} className="text-center"/></td>
+                                    <td className="px-6 py-2"><Input type="number" value={line.price} onChange={e => handleLineChange(index, 'price', e.target.value)} className="text-right"/></td>
+                                    <td className="px-6 py-2 text-center">19% IVA</td>
+                                    <td className="px-6 py-2 text-right font-semibold">${((line.quantity || 0) * (line.price || 0)).toFixed(2)}</td>
+                                    <td className="px-2 py-2"><Button variant="ghost" size="icon" onClick={() => removeLine(index)} className="h-8 w-8 text-red-500 hover:text-red-400"><Trash2 className="h-4 w-4" /></Button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="mt-4 flex items-center gap-4">
+                     <Button variant="link" className="p-0 h-auto" onClick={addEmptyLine}>+ Añadir un producto</Button>
+                     <Button variant="link" className="p-0 h-auto" onClick={() => setIsCatalogOpen(true)}>Abrir Catálogo</Button>
                 </div>
             </div>
 
-            <h2 className="text-xl font-bold mb-4">Líneas de Cotización</h2>
-            <div className="overflow-x-auto bg-gray-800 rounded-lg shadow">
-                 <table className="w-full text-sm text-left">
-                    <thead className="text-xs uppercase bg-gray-700 text-gray-400">
-                        <tr>
-                            <th className="px-6 py-3">Producto</th>
-                            <th className="px-6 py-3 w-24">Cantidad</th>
-                            <th className="px-6 py-3 w-40">Precio Unitario</th>
-                            <th className="px-6 py-3 w-32">Impuestos</th>
-                            <th className="px-6 py-3 w-40 text-right">Importe</th>
-                            <th className="px-2 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {quote.lineas.map((line, index) => (
-                            <tr key={index} className="border-b border-gray-700">
-                                <td className="px-6 py-2">
-                                    {line.productId === null ? (
-                                        <InlineProductSearch
-                                            products={products}
-                                            index={index}
-                                            onProductSelect={handleInlineProductSelect}
-                                            onCancel={cancelSearchLine}
-                                            onCreateNew={handleOpenProductForm}
-                                        />
-                                    ) : (
-                                        line.productName
-                                    )}
-                                </td>
-                                <td className="px-6 py-2"><input type="number" value={line.quantity} onChange={e => handleLineChange(index, 'quantity', e.target.value)} className="w-full bg-gray-700 rounded p-1 text-center"/></td>
-                                <td className="px-6 py-2"><input type="number" value={line.price} onChange={e => handleLineChange(index, 'price', e.target.value)} className="w-full bg-gray-700 rounded p-1 text-right"/></td>
-                                <td className="px-6 py-2 text-center">19% IVA</td>
-                                <td className="px-6 py-2 text-right font-semibold">${((line.quantity || 0) * (line.price || 0)).toFixed(2)}</td>
-                                <td className="px-2 py-2"><button onClick={() => removeLine(index)} className="text-red-500 hover:text-red-700">🗑️</button></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <div className="mt-4 flex items-center gap-4">
-                 <button onClick={addEmptyLine} className="text-indigo-400 font-semibold hover:underline">+ Añadir un producto</button>
-                 <button onClick={() => setIsCatalogOpen(true)} className="text-indigo-400 font-semibold hover:underline">Catálogo</button>
-            </div>
-            <div className="mt-8 flex justify-end">
-                <div className="w-full max-w-sm p-6 bg-gray-800 rounded-lg shadow-md space-y-4">
-                    <div className="flex justify-between"><span>Base imponible:</span><span>${subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>IVA 19%:</span><span>${tax.toFixed(2)}</span></div>
-                    <div className="border-t border-gray-700 my-2"></div>
-                    <div className="flex justify-between text-xl"><span className="font-bold">Total:</span><span className="font-bold text-indigo-400">${total.toFixed(2)}</span></div>
-                </div>
+            <div className="flex justify-end">
+                <Card className="w-full max-w-sm bg-transparent border-none">
+                    <CardContent className="p-6 bg-card rounded-lg border border-border space-y-4">
+                        <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span>IVA 19%:</span><span>${tax.toFixed(2)}</span></div>
+                        <Separator />
+                        <div className="flex justify-between text-xl"><span className="font-bold">Total:</span><span className="font-bold text-indigo-400">${total.toFixed(2)}</span></div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
