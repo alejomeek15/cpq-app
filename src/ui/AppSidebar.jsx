@@ -1,5 +1,4 @@
 import React from 'react';
-// --- ¡CAMBIO 1! --- Importamos el ícono para el Catálogo
 import { LayoutDashboard, Users, FileText, Settings, BookOpen } from 'lucide-react';
 import {
   Sidebar,
@@ -11,19 +10,17 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
 } from './sidebar.jsx';
 import { useSidebar } from './sidebar.jsx';
 
 export const AppSidebar = ({ navigate, route }) => {
   const { state } = useSidebar();
 
-  // --- ¡CAMBIO 2! --- Añadimos "Catálogo" a la lista de items del menú
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'quotes', label: 'Cotizaciones', icon: FileText },
     { id: 'clients', label: 'Clientes', icon: Users },
-    { id: 'catalog', label: 'Catálogo', icon: BookOpen }, // <-- NUEVO ITEM
+    { id: 'catalog', label: 'Catálogo', icon: BookOpen },
     { id: 'settings', label: 'Configuración', icon: Settings },
   ];
 
@@ -46,14 +43,13 @@ export const AppSidebar = ({ navigate, route }) => {
             CPQ
           </span>
         </div>
-        <SidebarTrigger />
+        {/* El SidebarTrigger ha sido eliminado de aquí */}
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenu>
-            {/* El .map() renderizará automáticamente el nuevo item sin cambios aquí */}
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton

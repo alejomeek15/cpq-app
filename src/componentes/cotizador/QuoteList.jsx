@@ -46,7 +46,7 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
     useEffect(() => { fetchQuotes(); }, [fetchQuotes]);
 
     const handleDeleteSelected = (selectedRows) => {
-        const idsToDelete = selectedRows.map(row => row.id);
+        const idsToDelete = selectedRows.map(row => row.original.id);
         setItemsToDelete(idsToDelete);
         setDialogOpen(true);
     };
