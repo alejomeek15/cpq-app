@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-// --- ¡CAMBIO 1! --- Se añaden 'query' y 'where' para filtrar la consulta
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp, query, where } from 'firebase/firestore';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import QuotePDF from './QuotePDF.jsx';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
 import { obtenerSiguienteNumeroCotizacion } from '../../utils/firestoreUtils.js';
 import { Button } from '@/ui/button.jsx';
@@ -206,13 +207,11 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         async function loadInitialData() {
             setLoading(true);
             try {
-                // --- ¡CAMBIO 2! ---
-                // Creamos una consulta para obtener solo las condiciones de pago activas.
                 const paymentTermsQuery = query(collection(db, "condicionesPago"), where("activo", "==", true));
 
                 const [clientsSnap, termsSnap] = await Promise.all([
                     getDocs(collection(db, "clientes")),
-                    getDocs(paymentTermsQuery) // Usamos la nueva consulta filtrada
+                    getDocs(paymentTermsQuery)
                 ]);
                 
                 setClients(clientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -359,6 +358,26 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                     <div className="flex items-center gap-2">
                         <Button variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
                         <Button onClick={handleSave}>Guardar Cotización</Button>
+                        
+                        {/* **BOTÓN DE DESCARGA PDF CONECTADO A DATOS REALES** */}
+                        {quoteId && !loading && (() => {
+                            const currentClient = clients.find(c => c.id === quote.clienteId);
+                            
+                            return (
+                                <PDFDownloadLink
+                                document={<QuotePDF quote={{...quote, subtotal, impuestos: tax, total}} client={currentClient} />}
+                                fileName={`${quote.numero || 'cotizacion'}.pdf`}
+                                >
+                                {({ loading: pdfLoading }) => 
+                                    pdfLoading ? (
+                                    <Button variant="outline" disabled>Generando PDF...</Button>
+                                    ) : (
+                                    <Button variant="outline">Descargar PDF</Button>
+                                    )
+                                }
+                                </PDFDownloadLink>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

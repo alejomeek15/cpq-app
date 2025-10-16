@@ -1,3 +1,5 @@
+import { PDFDownloadLink } from '@react-pdf/renderer'; // <-- 1. IMPORTAR
+import QuotePDF from './QuotePDF.jsx';              // <-- 2. IMPORTAR
 import { Button } from "@/ui/button.jsx";
 import { Checkbox } from "@/ui/checkbox.jsx";
 import { 
@@ -10,7 +12,7 @@ import {
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
-// Función de ayuda para los badges de estado (la movimos aquí desde QuoteList)
+// Función de ayuda para los badges de estado
 const getStatusBadge = (status = 'Borrador') => {
     const s = status.toLowerCase().replace(/\s/g, '-');
     const styles = {
@@ -77,6 +79,7 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
       const formatted = new Intl.NumberFormat("es-CO", {
         style: "currency",
         currency: "COP",
+        minimumFractionDigits: 0,
       }).format(amount);
       return <div className="text-right font-medium">{formatted}</div>;
     },
@@ -111,6 +114,18 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
             <DropdownMenuItem onClick={() => onEditQuote(quote.id)}>
               Editar Cotización
             </DropdownMenuItem>
+
+            {/* --- 3. NUEVA OPCIÓN DE DESCARGA PDF --- */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <PDFDownloadLink
+                document={<QuotePDF quote={quote} />}
+                fileName={`${quote.numero || 'cotizacion'}.pdf`}
+                style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
+              >
+                {({ loading }) => (loading ? 'Generando...' : 'Descargar PDF')}
+              </PDFDownloadLink>
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
