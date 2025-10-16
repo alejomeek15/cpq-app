@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
-
 import { Button } from '@/ui/button.jsx';
 import { createColumns } from './columns.jsx';
 import { DataTable } from '@/ui/DataTable.jsx';
@@ -12,9 +11,9 @@ const ListIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0
 const KanbanIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>;
 const PlusIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>;
 
-const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
+const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, loadingClients }) => {
     const [quotes, setQuotes] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingQuotes, setLoadingQuotes] = useState(true);
     const [error, setError] = useState(null);
     const [view, setView] = useState('list');
     const [isDialogOpen, setDialogOpen] = useState(false);
@@ -25,21 +24,32 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
         setDialogOpen(true);
     };
     
-    const columns = React.useMemo(() => createColumns(onEditQuote, handleDeleteQuote), [onEditQuote]);
+    const columns = React.useMemo(() => createColumns(onEditQuote, handleDeleteQuote, clients), [onEditQuote, clients]);
 
     const fetchQuotes = useCallback(async () => {
-        setLoading(true);
+        setLoadingQuotes(true);
         setError(null);
         try {
             const querySnapshot = await getDocs(collection(db, "cotizaciones"));
-            const quotesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // **CAMBIO AQUÍ: Convertimos las fechas al cargar la lista**
+            const quotesData = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    // Si 'vencimiento' existe y es un Timestamp, lo convertimos a Date.
+                    vencimiento: data.vencimiento ? data.vencimiento.toDate() : null
+                };
+            });
+
             quotesData.sort((a, b) => (b.fechaCreacion?.toMillis() || 0) - (a.fechaCreacion?.toMillis() || 0));
             setQuotes(quotesData);
         } catch (err) {
             console.error("Error fetching quotes:", err);
             setError("No se pudieron cargar las cotizaciones.");
         } finally {
-            setLoading(false);
+            setLoadingQuotes(false);
         }
     }, [db]);
 
@@ -70,7 +80,7 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification }) => {
         }
     };
 
-    if (loading) return <div className="text-center p-10">Cargando...</div>;
+    if (loadingQuotes || loadingClients) return <div className="text-center p-10">Cargando datos...</div>;
     if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
     
     return (

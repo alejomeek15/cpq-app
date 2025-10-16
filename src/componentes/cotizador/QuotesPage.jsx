@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
 import QuoteList from './QuoteList';
 import QuoteForm from './QuoteForm';
 import Notification from '../comunes/Notification.jsx';
@@ -12,13 +13,35 @@ import {
 } from '@/ui/breadcrumb.jsx';
 import { SidebarTrigger } from '@/ui/sidebar.jsx';
 
-// Componente principal que controla qué vista se muestra en el módulo de cotizaciones.
 const QuotesPage = ({ db, navigate }) => {
+    // **CORRECCIÓN AQUÍ: Se eliminó el '=' extra**
     const [view, setView] = useState('list');
     const [currentQuoteId, setCurrentQuoteId] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [clients, setClients] = useState([]);
+    const [loadingClients, setLoadingClients] = useState(true);
 
-    // Funciones para cambiar entre las vistas.
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, "clientes"));
+                const clientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setClients(clientsData);
+            } catch (error) {
+                console.error("Error fetching clients:", error);
+                setNotification({
+                    type: 'error',
+                    title: 'Error de Carga',
+                    message: 'No se pudieron cargar los datos de los clientes.'
+                });
+            } finally {
+                setLoadingClients(false);
+            }
+        };
+
+        fetchClients();
+    }, [db]);
+
     const showListView = (message = null) => {
         setView('list');
         setCurrentQuoteId(null);
@@ -36,8 +59,6 @@ const QuotesPage = ({ db, navigate }) => {
         setView('form');
     };
 
-    // --- Renderizado del Breadcrumb ---
-    // Se quita el margen de aquí para controlar el espaciado desde el layout principal.
     const renderBreadcrumb = () => (
       <Breadcrumb>
         <BreadcrumbList>
@@ -75,28 +96,26 @@ const QuotesPage = ({ db, navigate }) => {
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
             
             <div className="mb-8">
-                {/* El botón del sidebar se renderiza primero en su propia línea */}
                 <SidebarTrigger />
-
-                {/* El Breadcrumb se renderiza debajo, con un pequeño margen superior para separarlo */}
                 <div className="mt-4">
                   {renderBreadcrumb()}
                 </div>
             </div>
             
-            {/* Renderizado condicional basado en el estado 'view'. */}
             {view === 'list' ? (
                 <QuoteList 
                     db={db} 
                     onAddNewQuote={() => showFormView(null)} 
                     onEditQuote={showFormView}
                     setNotification={setNotification}
+                    clients={clients}
+                    loadingClients={loadingClients}
                 />
             ) : (
                 <QuoteForm 
                     db={db} 
                     quoteId={currentQuoteId} 
-                    onBack={(saved) => showListView(saved ? 'Cotización guardada correctamente.' : null)} 
+                    onBack={(saved) => showListView(saved ? 'Cotización guardada correctamente.' : null)}
                 />
             )}
         </div>

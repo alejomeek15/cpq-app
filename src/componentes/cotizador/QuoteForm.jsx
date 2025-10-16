@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp, query, where } from 'firebase/firestore';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import QuotePDF from './QuotePDF.jsx';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
 import { obtenerSiguienteNumeroCotizacion } from '../../utils/firestoreUtils.js';
@@ -176,6 +176,53 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
                 </div>
             )}
         </div>
+    );
+};
+
+const DownloadPDFButton = ({ quoteId, loading, clients, quote, subtotal, tax, total }) => {
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    if (!quoteId || loading) {
+        return null;
+    }
+
+    const handleDownload = async () => {
+        setIsGenerating(true);
+        try {
+            const currentClient = clients.find(c => c.id === quote.clienteId);
+            if (!currentClient) {
+                console.error("No se pudo encontrar el cliente para generar el PDF.");
+                setIsGenerating(false);
+                return;
+            }
+
+            const doc = <QuotePDF quote={{...quote, subtotal, impuestos: tax, total}} client={currentClient} />;
+            const blob = await pdf(doc).toBlob();
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${quote.numero || 'cotizacion'}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error("Error al generar el PDF:", error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    return (
+        <Button 
+            variant="outline" 
+            onClick={handleDownload} 
+            disabled={isGenerating}
+        >
+            {isGenerating ? 'Generando PDF...' : 'Descargar PDF'}
+        </Button>
     );
 };
 
@@ -359,25 +406,15 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                         <Button variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
                         <Button onClick={handleSave}>Guardar Cotización</Button>
                         
-                        {/* **BOTÓN DE DESCARGA PDF CONECTADO A DATOS REALES** */}
-                        {quoteId && !loading && (() => {
-                            const currentClient = clients.find(c => c.id === quote.clienteId);
-                            
-                            return (
-                                <PDFDownloadLink
-                                document={<QuotePDF quote={{...quote, subtotal, impuestos: tax, total}} client={currentClient} />}
-                                fileName={`${quote.numero || 'cotizacion'}.pdf`}
-                                >
-                                {({ loading: pdfLoading }) => 
-                                    pdfLoading ? (
-                                    <Button variant="outline" disabled>Generando PDF...</Button>
-                                    ) : (
-                                    <Button variant="outline">Descargar PDF</Button>
-                                    )
-                                }
-                                </PDFDownloadLink>
-                            );
-                        })()}
+                        <DownloadPDFButton 
+                            quoteId={quoteId}
+                            loading={loading}
+                            clients={clients}
+                            quote={quote}
+                            subtotal={subtotal}
+                            tax={tax}
+                            total={total}
+                        />
                     </div>
                 </div>
             </div>
@@ -458,7 +495,9 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                 </div>
                 <div className="mt-4 flex items-center gap-4">
                      <Button variant="link" className="p-0 h-auto" onClick={addEmptyLine}>+ Añadir un producto</Button>
-                     <Button variant="link" className="p-0 h-auto" onClick={() => setIsCatalogOpen(true)}>Abrir Catálogo</Button>
+                     <Button variant="link" className="p-0 h-auto" onClick={() => setIsCatalogOpen(true)}>
+                        Abrir Catálogo
+                     </Button>
                 </div>
             </div>
 

@@ -1,5 +1,6 @@
-import { PDFDownloadLink } from '@react-pdf/renderer'; // <-- 1. IMPORTAR
-import QuotePDF from './QuotePDF.jsx';              // <-- 2. IMPORTAR
+import React from 'react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import QuotePDF from './QuotePDF.jsx';
 import { Button } from "@/ui/button.jsx";
 import { Checkbox } from "@/ui/checkbox.jsx";
 import { 
@@ -12,7 +13,6 @@ import {
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
-// Función de ayuda para los badges de estado
 const getStatusBadge = (status = 'Borrador') => {
     const s = status.toLowerCase().replace(/\s/g, '-');
     const styles = {
@@ -23,8 +23,8 @@ const getStatusBadge = (status = 'Borrador') => {
     return `px-2.5 py-0.5 text-xs font-semibold rounded-full ${styles[s] || 'bg-gray-500/10 text-gray-400'}`;
 };
 
-export const createColumns = (onEditQuote, onDeleteQuote) => [
-  // Columna de Selección (Checkbox)
+// **CAMBIO: La función ahora acepta 'clients'**
+export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -44,8 +44,6 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
     enableSorting: false,
     enableHiding: false,
   },
-  
-  // Columna de Número (Ordenable y Clickable)
   {
     accessorKey: "numero",
     header: ({ column }) => (
@@ -63,14 +61,10 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
       </Button>
     ),
   },
-
-  // Columna de Cliente
   {
     accessorKey: "clienteNombre",
     header: "Cliente",
   },
-
-  // Columna de Total (Formateada como moneda)
   {
     accessorKey: "total",
     header: () => <div className="text-right">Total</div>,
@@ -84,8 +78,6 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
       return <div className="text-right font-medium">{formatted}</div>;
     },
   },
-
-  // Columna de Estado (con badge de color)
   {
     accessorKey: "estado",
     header: "Estado",
@@ -95,12 +87,13 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
         </span>
     ),
   },
-  
-  // Columna de Acciones
   {
     id: "actions",
     cell: ({ row }) => {
       const quote = row.original;
+      // **CAMBIO: Buscamos el cliente aquí mismo**
+      const client = clients.find(c => c.id === quote.clienteId);
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -115,17 +108,22 @@ export const createColumns = (onEditQuote, onDeleteQuote) => [
               Editar Cotización
             </DropdownMenuItem>
 
-            {/* --- 3. NUEVA OPCIÓN DE DESCARGA PDF --- */}
+            {/* **CAMBIO: El botón de descarga ahora tiene acceso a 'client'** */}
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              <PDFDownloadLink
-                document={<QuotePDF quote={quote} />}
-                fileName={`${quote.numero || 'cotizacion'}.pdf`}
-                style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
-              >
-                {({ loading }) => (loading ? 'Generando...' : 'Descargar PDF')}
-              </PDFDownloadLink>
+                {client ? (
+                    <PDFDownloadLink
+                        document={<QuotePDF quote={quote} client={client} />}
+                        fileName={`${quote.numero || 'cotizacion'}.pdf`}
+                        style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
+                    >
+                        {({ loading }) => (loading ? 'Generando...' : 'Descargar PDF')}
+                    </PDFDownloadLink>
+                ) : (
+                    // Fallback por si el cliente no se encuentra
+                    <span style={{color: 'gray', fontSize: '12px'}}>Cargando datos...</span>
+                )}
             </DropdownMenuItem>
-
+            
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
