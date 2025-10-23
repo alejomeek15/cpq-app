@@ -10,9 +10,8 @@ Font.register({
   ],
 });
 
-// === Paleta de colores ===
+// === Colores base ===
 const colors = {
-  background: '#F7F2ED',
   accent: '#B86B42',
   text: '#333333',
   gray: '#666666',
@@ -21,126 +20,121 @@ const colors = {
   white: '#FFFFFF',
 };
 
-// === Estilos ===
+// === Estilos generales ===
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Lato',
     fontSize: 10,
     color: colors.text,
-    padding: 40,
+    paddingTop: 40,
+    paddingHorizontal: 50,
+    paddingBottom: 60,
     backgroundColor: colors.white,
   },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 160,
-    backgroundColor: colors.background,
-    borderBottomLeftRadius: 80,
-    borderBottomRightRadius: 80,
-  },
-  header: {
-    marginTop: 25,
-    marginBottom: 35,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
+
+  // --- ENCABEZADO EMPRESA ---
   companyInfo: {
-    width: '60%',
+    textAlign: 'right',
+    marginBottom: 25,
   },
   companyName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 3,
   },
   companyDetails: {
     fontSize: 9,
     color: colors.gray,
     lineHeight: 1.3,
   },
-  orderInfo: {
-    backgroundColor: colors.white,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    minWidth: 170,
+
+  // --- TÍTULO Y CLIENTE ---
+  orderHeaderBlock: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   orderTitle: {
     fontSize: 16,
     color: colors.accent,
     fontWeight: 'bold',
-    marginBottom: 5,
+  },
+  billingBox: {
+    textAlign: 'left',
+    width: '50%',
+  },
+  billingLabel: {
+    fontSize: 9,
+    color: colors.gray,
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+    marginBottom: 3,
+  },
+  billingText: {
+    fontSize: 9,
+    color: colors.text,
+    lineHeight: 1.3,
+  },
+  billingName: {
+    fontWeight: 'bold',
+    fontSize: 10,
+  },
+
+  // --- INFO SECUNDARIA (Emisión / Vencimiento / Comercial) ---
+  orderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  dateGroup: {
+    flexDirection: 'row',
+    gap: 20,
   },
   orderLabel: {
     fontSize: 9,
     color: colors.gray,
-    textTransform: 'uppercase',
+    marginBottom: 3,
   },
   orderValue: {
     fontSize: 10,
-    color: colors.text,
     fontWeight: 'bold',
   },
-  infoBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.lightGray,
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 25,
-  },
-  clientInfoContainer: {
-    width: '48%',
-  },
-  infoText: {
-    fontSize: 9,
-    color: colors.text,
-    lineHeight: 1.4,
-  },
-  infoLabel: {
-    fontWeight: 'bold',
-    color: colors.gray,
-  },
+
+  // --- TABLA ---
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 6,
+    borderBottomColor: colors.text,
+    paddingVertical: 4,
     marginBottom: 2,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: 4,
   },
   headerCell: {
     fontSize: 9,
     fontWeight: 'bold',
     color: colors.text,
   },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 6,
-  },
-  altRow: {
-    backgroundColor: colors.lightGray,
-  },
   colDescription: { width: '35%' },
-  colQty: { width: '15%', textAlign: 'center' },
+  colQty: { width: '20%', textAlign: 'center' },
   colPrice: { width: '15%', textAlign: 'right' },
-  colTax: { width: '12%', textAlign: 'center' },
-  colImporte: { width: '23%', textAlign: 'right' },
+  colTax: { width: '10%', textAlign: 'center' },
+  colImporte: { width: '20%', textAlign: 'right' },
+
+  // --- TOTALES ---
   totalsBox: {
-    marginTop: 20,
+    marginTop: 10,
     alignSelf: 'flex-end',
-    width: '45%',
+    width: '40%',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -151,64 +145,52 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: colors.text,
   },
   totalFinal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.background,
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginTop: 6,
+    marginTop: 5,
   },
   totalFinalLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     color: colors.accent,
   },
   totalFinalValue: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
     color: colors.accent,
   },
+
+  // --- CONDICIONES DE PAGO ---
   payment: {
     marginTop: 25,
-    backgroundColor: colors.lightGray,
-    padding: 10,
-    borderRadius: 6,
-  },
-  paymentLabel: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 3,
   },
   paymentText: {
     fontSize: 9,
-    color: colors.gray,
+    color: colors.text,
   },
-  footerWave: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
+  paymentLabel: {
+    fontWeight: 'bold',
   },
-  footerText: {
+
+  // --- PIE DE PÁGINA ---
+  footer: {
     position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
+    bottom: 25,
+    left: 50,
+    right: 50,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     fontSize: 8,
     color: colors.gray,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 6,
   },
 });
 
+// === Funciones auxiliares ===
 const formatCurrency = (amount) => {
   return (amount || 0).toLocaleString('es-CO', {
     style: 'currency',
@@ -217,49 +199,68 @@ const formatCurrency = (amount) => {
   });
 };
 
+const formatDate = (date) => {
+  try {
+    const d = date?.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleDateString('es-CO');
+  } catch {
+    return 'Fecha no disponible';
+  }
+};
+
+// === COMPONENTE PRINCIPAL ===
 const QuotePDF = ({ quote, client }) => (
-  <Document author="DIDACTICOS JUGANDO Y EDUCANDO SAS" title={`Pedido ${quote.numero}`}>
+  <Document author="DIDACTICOS JUGANDO Y EDUCANDO SAS" title={`Cotización ${quote.numero}`}>
     <Page size="A4" style={styles.page}>
-      <View style={styles.headerBackground} fixed />
+      {/* ENCABEZADO DE EMPRESA */}
+      <View style={styles.companyInfo}>
+        <Text style={styles.companyName}>DIDACTICOS JUGANDO Y EDUCANDO SAS</Text>
+        <Text style={styles.companyDetails}>AVENIDA 19 114 A 22</Text>
+        <Text style={styles.companyDetails}>BOGOTÁ</Text>
+        <Text style={styles.companyDetails}>Colombia</Text>
+        <Text style={styles.companyDetails}>NIT: 901144615-6</Text>
+      </View>
 
-      <View style={styles.header}>
-        <View style={styles.companyInfo}>
-          <Text style={styles.companyName}>DIDACTICOS JUGANDO Y EDUCANDO SAS</Text>
-          <Text style={styles.companyDetails}>AVENIDA 19 114 A 22</Text>
-          <Text style={styles.companyDetails}>BOGOTÁ, Colombia</Text>
-          <Text style={styles.companyDetails}>NIT: 901144615-6</Text>
+      {/* CLIENTE (IZQUIERDA) + TÍTULO (DERECHA) */}
+      <View style={styles.orderHeaderBlock}>
+        <View style={styles.billingBox}>
+          <Text style={styles.billingLabel}>Cliente</Text>
+          <Text style={styles.billingName}>{client?.nombre || quote.clienteNombre}</Text>
+          <Text style={styles.billingText}>
+            {client?.direccion?.calle || 'Dirección no disponible'}
+          </Text>
+          <Text style={styles.billingText}>
+            {`${client?.direccion?.ciudad || 'Ciudad no disponible'}, ${
+              client?.direccion?.departamento || ''
+            }`}
+          </Text>
         </View>
 
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderTitle}>Pedido n° {quote.numero}</Text>
-          <Text style={styles.orderLabel}>Fecha de pedido</Text>
-          <Text style={styles.orderValue}>
-            {new Date(quote.fechaCreacion?.toDate() || Date.now()).toLocaleDateString('es-CO')}
-          </Text>
+        <Text style={styles.orderTitle}>Cotización n° {quote.numero}</Text>
+      </View>
+
+      {/* EMISIÓN / VENCIMIENTO / COMERCIAL */}
+      <View style={styles.orderHeader}>
+        <View style={styles.dateGroup}>
+          <View>
+            <Text style={styles.orderLabel}>Emisión</Text>
+            <Text style={styles.orderValue}>{formatDate(quote.fechaCreacion)}</Text>
+          </View>
+          <View>
+            <Text style={styles.orderLabel}>Vencimiento</Text>
+            <Text style={styles.orderValue}>
+              {quote.vencimiento ? formatDate(quote.vencimiento) : 'No especificado'}
+            </Text>
+          </View>
+        </View>
+
+        <View>
+          <Text style={styles.orderLabel}>Comercial</Text>
+          <Text style={styles.orderValue}>{quote.comercialNombre || 'No asignado'}</Text>
         </View>
       </View>
 
-      <View style={styles.infoBox}>
-        <View style={styles.clientInfoContainer}>
-          <Text style={styles.infoText}>
-            <Text style={styles.infoLabel}>Facturar a:{"\n"}</Text>
-            <Text style={{ fontWeight: 'bold' }}>{client?.nombre || quote.clienteNombre}{"\n"}</Text>
-            {/* **CAMBIO AQUÍ: Accedemos a los datos anidados correctamente** */}
-            {client?.direccion?.calle || 'Dirección no disponible'}{"\n"}
-            {`${client?.direccion?.ciudad || 'Ciudad no disponible'}, ${client?.direccion?.departamento || ''}`}
-          </Text>
-        </View>
-        <View style={styles.clientInfoContainer}>
-          <Text style={styles.infoText}>
-            <Text style={styles.infoLabel}>Vencimiento: </Text>
-            {quote.vencimiento ? new Date(quote.vencimiento).toLocaleDateString('es-CO') : 'No especificado'}
-          </Text>
-          <Text style={styles.infoText}>
-            <Text style={styles.infoLabel}>Comercial: </Text> {quote.comercialNombre || 'No asignado'}
-          </Text>
-        </View>
-      </View>
-
+      {/* TABLA DE PRODUCTOS */}
       <View>
         <View style={styles.tableHeader}>
           <Text style={[styles.headerCell, styles.colDescription]}>Descripción</Text>
@@ -268,11 +269,11 @@ const QuotePDF = ({ quote, client }) => (
           <Text style={[styles.headerCell, styles.colTax]}>Impuestos</Text>
           <Text style={[styles.headerCell, styles.colImporte]}>Importe</Text>
         </View>
-        
+
         {quote.lineas.map((line, i) => (
-          <View key={i} style={[styles.tableRow, i % 2 === 1 && styles.altRow]}>
+          <View key={i} style={styles.tableRow}>
             <Text style={[styles.colDescription]}>{line.productName}</Text>
-            <Text style={[styles.colQty]}>{line.quantity.toFixed(2)}</Text>
+            <Text style={[styles.colQty]}>{Math.round(line.quantity)}</Text>
             <Text style={[styles.colPrice]}>{formatCurrency(line.price)}</Text>
             <Text style={[styles.colTax]}>19%</Text>
             <Text style={[styles.colImporte]}>{formatCurrency(line.quantity * line.price)}</Text>
@@ -280,6 +281,7 @@ const QuotePDF = ({ quote, client }) => (
         ))}
       </View>
 
+      {/* TOTALES */}
       <View style={styles.totalsBox}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Base imponible</Text>
@@ -295,15 +297,19 @@ const QuotePDF = ({ quote, client }) => (
         </View>
       </View>
 
+      {/* CONDICIONES DE PAGO */}
       <View style={styles.payment}>
-        <Text style={styles.paymentLabel}>Condiciones de pago</Text>
-        <Text style={styles.paymentText}>{quote.condicionesPago || 'No especificadas'}</Text>
+        <Text style={styles.paymentText}>
+          <Text style={styles.paymentLabel}>Condiciones de pago: </Text>
+          {quote.condicionesPago || 'No especificadas'}
+        </Text>
       </View>
 
-      <View style={styles.footerWave} fixed />
-      <Text style={styles.footerText} fixed>
-        Página 1 / 1 — DIDACTICOS JUGANDO Y EDUCANDO SAS — Bogotá, Colombia
-      </Text>
+      {/* PIE DE PÁGINA */}
+      <View style={styles.footer} fixed>
+        <Text>Cotización emitida por Didácticos Jugando y Educando SAS</Text>
+        <Text>Página 1 / 1</Text>
+      </View>
     </Page>
   </Document>
 );
