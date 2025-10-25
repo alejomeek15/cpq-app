@@ -46,7 +46,11 @@ export default function App() {
     <SidebarProvider className="min-h-screen bg-gray-900 text-white">
       <AppSidebar navigate={setRoute} route={route} />
       
-      <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
+      {/* --- ¡AQUÍ ESTÁ LA SOLUCIÓN! ---
+        Añadimos 'min-w-0' para forzar al 'main' a respetar
+        el ancho de la pantalla y no estirarse con su contenido.
+      */}
+      <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 min-w-0">
         {renderRoute()}
       </main>
     </SidebarProvider>
