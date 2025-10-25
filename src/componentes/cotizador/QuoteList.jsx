@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, getDocs, writeBatch, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc } from 'firebase/firestore'; // <-- 'updateDoc' ya no es necesario aquí
 import { Button } from '@/ui/button.jsx';
 import { createColumns } from './columns.jsx';
 import { DataTable } from '@/ui/DataTable.jsx';
@@ -7,21 +7,8 @@ import AlertDialog from '../comunes/AlertDialog.jsx';
 import CardView from '../comunes/CardView';
 import QuoteCard from './QuoteCard';
 
-import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { QuoteColumn } from './QuoteColumn';
-import { SortableQuoteCard } from './SortableQuoteCard';
-
-// --- 1. Importar ScrollArea y ScrollBar ---
-import { ScrollArea, ScrollBar } from "@/ui/scroll-area.jsx";
+// --- 1. Importar el nuevo componente especialista ---
+import { QuoteBoard } from './QuoteBoard.jsx';
 
 // --- Iconos (sin cambios) ---
 const ListIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 9a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 14a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"></path></svg>;
@@ -30,15 +17,7 @@ const BoardIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 
 const PlusIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>;
 // --- Fin Iconos ---
 
-// --- 2. Títulos de columnas SIN emojis ---
-const BOARD_COLUMNS = {
-  'Borrador': 'Borrador',
-  'Enviada': 'Enviada',
-  'En negociación': 'En negociación',
-  'Aprobada': 'Aprobada',
-  'Rechazada': 'Rechazada',
-  'Vencida': 'Vencida',
-};
+// --- 2. TODA la lógica de D&D y BOARD_COLUMNS se ha movido ---
 
 const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, loadingClients }) => {
     const [quotes, setQuotes] = useState([]);
@@ -48,8 +27,7 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [itemsToDelete, setItemsToDelete] = useState([]);
     
-    // --- 5. Estado para Dnd-Kit ---
-    const [activeQuote, setActiveQuote] = useState(null); // La cotización que se está arrastrando
+    // --- 3. 'activeQuote' y 'sensors' eliminados ---
 
     const handleDeleteQuote = (quoteId) => {
         setItemsToDelete([quoteId]);
@@ -108,124 +86,7 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
         }
     };
 
-    // --- 6. Lógica de Dnd-Kit ---
-
-    // Agrupamos las cotizaciones por estado para el tablero
-    const quoteGroups = useMemo(() => {
-      const groups = {};
-      Object.keys(BOARD_COLUMNS).forEach(status => groups[status] = []);
-      quotes.forEach(quote => {
-        const status = quote.estado && BOARD_COLUMNS[quote.estado] ? quote.estado : 'Borrador';
-        if (!groups[status]) {
-          groups[status] = []; 
-        }
-        groups[status].push(quote);
-      });
-      return groups;
-    }, [quotes]);
-
-    // Sensores para 'Pointer' (mouse, touch) y 'Keyboard'
-    const sensors = useSensors(
-      useSensor(PointerSensor),
-      useSensor(KeyboardSensor, {
-        coordinateGetter: sortableKeyboardCoordinates,
-      })
-    );
-
-    // Función para actualizar el estado en Firebase
-    const handleUpdateQuoteStatus = async (quoteId, newStatus) => {
-      const quoteRef = doc(db, "cotizaciones", quoteId);
-      try {
-        await updateDoc(quoteRef, { estado: newStatus });
-        setNotification({
-          type: 'success',
-          title: 'Cotización actualizada',
-          message: `El estado se cambió a ${newStatus}.`
-        });
-      } catch (err) {
-        console.error("Error updating quote status:", err);
-        setNotification({
-          type: 'error',
-          title: 'Error',
-          message: 'No se pudo actualizar el estado.'
-        });
-        fetchQuotes(); 
-      }
-    };
-
-    function handleDragStart(event) {
-      const { active } = event;
-      const quote = quotes.find(q => q.id === active.id);
-      setActiveQuote(quote);
-    }
-
-    function handleDragOver(event) {
-      const { active, over } = event;
-      if (!over) return;
-
-      const activeId = active.id;
-      const overId = over.id;
-
-      if (activeId === overId) return;
-
-      const isActiveAQuote = active.data.current?.type === 'Quote';
-      const isOverAQuote = over.data.current?.type === 'Quote';
-      const isOverAColumn = over.data.current?.type === 'Column';
-
-      if (!isActiveAQuote) return;
-
-      let newStatus;
-      if (isOverAColumn) {
-        newStatus = over.data.current.status;
-      } else if (isOverAQuote) {
-        newStatus = over.data.current.status;
-      } else {
-        return;
-      }
-      
-      const activeQuote = quotes.find(q => q.id === activeId);
-      if (activeQuote && activeQuote.estado !== newStatus) {
-        setQuotes(prevQuotes => {
-          const activeIndex = prevQuotes.findIndex(q => q.id === activeId);
-          if (activeIndex === -1) return prevQuotes;
-          
-          const newQuotes = [...prevQuotes];
-          newQuotes[activeIndex] = {
-            ...newQuotes[activeIndex],
-            estado: newStatus,
-          };
-          return newQuotes;
-        });
-      }
-    }
-
-    function handleDragEnd(event) {
-      const { active, over } = event;
-      
-      setActiveQuote(null);
-      if (!over) return;
-      
-      const activeId = active.id;
-      const originalStatus = active.data.current.status;
-      
-      const isOverAQuote = over.data.current?.type === 'Quote';
-      const isOverAColumn = over.data.current?.type === 'Column';
-
-      let newStatus;
-      if (isOverAColumn) {
-        newStatus = over.data.current.status;
-      } else if (isOverAQuote) {
-        newStatus = over.data.current.status;
-      } else {
-        return;
-      }
-
-      if (originalStatus === newStatus) return;
-      
-      handleUpdateQuoteStatus(activeId, newStatus);
-    }
-    // --- Fin Lógica Dnd-Kit ---
-
+    // --- 4. TODAS las funciones de D&D (handleDrag...) eliminadas ---
 
     if (loadingQuotes || loadingClients) return <div className="text-center p-10">Cargando datos...</div>;
     if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
@@ -260,7 +121,7 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
                 </div>
             </div>
 
-            {/* --- 8. Lógica de renderizado de vistas --- */}
+            {/* --- 5. Lógica de renderizado simplificada --- */}
             {quotes.length === 0 ? (
                 <div className="text-center py-16">No hay cotizaciones.</div>
             ) : view === 'list' ? (
@@ -277,34 +138,14 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
                     renderCard={(quote) => <QuoteCard quote={quote} />}
                 />
             ) : (
-                // --- 3. VISTA DE TABLERO (BOARD) CON SCROLLAREA ---
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCorners}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDragEnd={handleDragEnd}
-                >
-                  <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-                    <div className="flex gap-6 pb-4"> {/* pb-4 para dar espacio a la barra de scroll */}
-                      {Object.entries(BOARD_COLUMNS).map(([status, title]) => (
-                        <QuoteColumn
-                          key={status}
-                          id={status}
-                          title={title}
-                          quotes={quoteGroups[status] || []}
-                        />
-                      ))}
-                    </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                  
-                  <DragOverlay>
-                    {activeQuote ? (
-                      <QuoteCard quote={activeQuote} />
-                    ) : null}
-                  </DragOverlay>
-                </DndContext>
+                // --- Aquí se renderiza el especialista ---
+                <QuoteBoard
+                  quotes={quotes}
+                  setQuotes={setQuotes}
+                  db={db}
+                  setNotification={setNotification}
+                  fetchQuotes={fetchQuotes} // Pasamos fetchQuotes para el fallback de error
+                />
             )}
             {/* --- Fin Lógica de renderizado --- */}
         </div>
