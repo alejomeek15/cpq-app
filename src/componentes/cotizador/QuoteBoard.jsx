@@ -32,8 +32,10 @@ const BOARD_COLUMNS = {
 // --- El Componente Especialista ---
 export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes }) {
   
-  // Estado local solo para D&D
+  // Estado local para D&D
   const [activeQuote, setActiveQuote] = useState(null);
+  // --- ¡FIX 1! Nuevo estado para guardar el estado original ---
+  const [originalDragStatus, setOriginalDragStatus] = useState(null);
 
   // Agrupamos las cotizaciones por estado
   const quoteGroups = useMemo(() => {
@@ -49,7 +51,7 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
     return groups;
   }, [quotes]);
 
-  // Sensores para 'Pointer' y 'Keyboard'
+  // Sensores (versión simple, sin el 'activationConstraint' del onClick)
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -74,7 +76,6 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
         title: 'Error',
         message: 'No se pudo actualizar el estado.'
       });
-      // Si falla, volvemos a cargar los datos para revertir el cambio visual
       if (fetchQuotes) fetchQuotes(); 
     }
   };
@@ -85,6 +86,9 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
     const { active } = event;
     const quote = quotes.find(q => q.id === active.id);
     setActiveQuote(quote);
+    
+    // --- ¡FIX 2! Guardamos el estado ANTES de cualquier re-render ---
+    setOriginalDragStatus(quote.status);
   }
 
   function handleDragOver(event) {
@@ -113,7 +117,7 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
     
     const activeQuote = quotes.find(q => q.id === activeId);
     if (activeQuote && activeQuote.estado !== newStatus) {
-      // Actualización optimista del estado local
+      // Actualización optimista del estado local (esto es lo que causaba el bug)
       setQuotes(prevQuotes => {
         const activeIndex = prevQuotes.findIndex(q => q.id === activeId);
         if (activeIndex === -1) return prevQuotes;
@@ -131,11 +135,16 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
   function handleDragEnd(event) {
     const { active, over } = event;
     
+    // Reseteamos los estados de 'drag'
     setActiveQuote(null);
+    setOriginalDragStatus(null); // <-- Reseteamos el estado
+    
     if (!over) return;
     
     const activeId = active.id;
-    const originalStatus = active.data.current.status;
+    
+    // --- ¡FIX 3! Usamos el estado original guardado para la comparación ---
+    const originalStatus = originalDragStatus; 
     
     const isOverAQuote = over.data.current?.type === 'Quote';
     const isOverAColumn = over.data.current?.type === 'Column';
@@ -146,12 +155,13 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
     } else if (isOverAQuote) {
       newStatus = over.data.current.status;
     } else {
-      return;
+      return; // No se soltó en un lugar válido
     }
 
+    // Esta comparación ('Borrador' vs 'Enviada') ahora funcionará
     if (originalStatus === newStatus) return;
     
-    // Persistimos el cambio en Firebase
+    // ¡Esta función ahora SÍ se llamará!
     handleUpdateQuoteStatus(activeId, newStatus);
   }
 
@@ -172,6 +182,7 @@ export function QuoteBoard({ quotes, setQuotes, db, setNotification, fetchQuotes
               id={status}
               title={title}
               quotes={quoteGroups[status] || []}
+              // No pasamos 'onEditQuote' ya que no se implementó
             />
           ))}
         </div>

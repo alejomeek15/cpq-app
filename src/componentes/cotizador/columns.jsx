@@ -13,6 +13,7 @@ import {
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
+// Función de Badge (sin cambios)
 const getStatusBadge = (status = 'Borrador') => {
     const s = status.toLowerCase().replace(/\s/g, '-');
     const styles = {
@@ -23,23 +24,26 @@ const getStatusBadge = (status = 'Borrador') => {
     return `px-2.5 py-0.5 text-xs font-semibold rounded-full ${styles[s] || 'bg-gray-500/10 text-gray-400'}`;
 };
 
-// **CAMBIO: La función ahora acepta 'clients'**
 export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
   {
     id: "select",
     header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
+      <div className="flex justify-center">
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      </div>
     ),
     cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
+      <div className="flex justify-center">
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      </div>
     ),
     enableSorting: false,
     enableHiding: false,
@@ -47,27 +51,34 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
   {
     accessorKey: "numero",
     header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Número <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
+      <div className="text-center">
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+          Número <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
     ),
     cell: ({ row }) => (
-      <Button
-        variant="link"
-        className="p-0 h-auto font-medium text-white"
-        onClick={() => onEditQuote(row.original.id)}
-      >
-        {row.getValue("numero")}
-      </Button>
+      <div className="text-center">
+        <Button
+          variant="link"
+          className="p-0 h-auto font-medium text-white"
+          onClick={() => onEditQuote(row.original.id)}
+        >
+          {row.getValue("numero")}
+        </Button>
+      </div>
     ),
   },
   {
     accessorKey: "clienteNombre",
-    header: "Cliente",
+    header: () => <div className="text-center">Cliente</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue("clienteNombre")}</div>
+    ),
   },
   {
     accessorKey: "total",
-    header: () => <div className="text-right">Total</div>,
+    header: () => <div className="text-center">Total</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("total") || 0);
       const formatted = new Intl.NumberFormat("es-CO", {
@@ -75,64 +86,67 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
         currency: "COP",
         minimumFractionDigits: 0,
       }).format(amount);
-      return <div className="text-right font-medium">{formatted}</div>;
+      
+      // --- ¡CAMBIO AQUÍ! ---
+      // Cambiamos 'text-right' por 'text-center'
+      return <div className="text-center font-medium">{formatted}</div>;
     },
   },
   {
     accessorKey: "estado",
-    header: "Estado",
+    header: () => <div className="text-center">Estado</div>,
     cell: ({ row }) => (
+      <div className="text-center">
         <span className={getStatusBadge(row.getValue("estado"))}>
             {row.getValue("estado")}
         </span>
+      </div>
     ),
   },
   {
     id: "actions",
+    header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => {
       const quote = row.original;
-      // **CAMBIO: Buscamos el cliente aquí mismo**
       const client = clients.find(c => c.id === quote.clienteId);
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEditQuote(quote.id)}>
-              Editar Cotización
-            </DropdownMenuItem>
-
-            {/* **CAMBIO: El botón de descarga ahora tiene acceso a 'client'** */}
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                {client ? (
-                    <PDFDownloadLink
-                        document={<QuotePDF quote={quote} client={client} />}
-                        fileName={`${quote.numero || 'cotizacion'}.pdf`}
-                        style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
-                    >
-                        {({ loading }) => (loading ? 'Generando...' : 'Descargar PDF')}
-                    </PDFDownloadLink>
-                ) : (
-                    // Fallback por si el cliente no se encuentra
-                    <span style={{color: 'gray', fontSize: '12px'}}>Cargando datos...</span>
-                )}
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
-              onClick={() => onDeleteQuote(quote.id)}
-            >
-              Eliminar Cotización
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEditQuote(quote.id)}>
+                Editar Cotización
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  {client ? (
+                      <PDFDownloadLink
+                          document={<QuotePDF quote={quote} client={client} />}
+                          fileName={`${quote.numero || 'cotizacion'}.pdf`}
+                          style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
+                      >
+                          {({ loading }) => (loading ? 'Generando...' : 'Descargar PDF')}
+                      </PDFDownloadLink>
+                  ) : (
+                      <span style={{color: 'gray', fontSize: '12px'}}>Cargando datos...</span>
+                  )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                onClick={() => onDeleteQuote(quote.id)}
+              >
+                Eliminar Cotización
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       )
     },
   },

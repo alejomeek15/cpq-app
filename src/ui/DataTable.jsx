@@ -1,3 +1,4 @@
+// --- DataTable.jsx (Actualizado) ---
 import React from 'react';
 import {
   flexRender,
@@ -18,12 +19,13 @@ import {
 } from "@/ui/table.jsx";
 
 import { Button } from "@/ui/button.jsx";
-import { Input } from "@/ui/input.jsx";
+// 'Input' ya no es necesario aquí
 import { Trash2 } from 'lucide-react';
 
-export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }) {
+// --- ¡CAMBIO! 'filterColumn' se ha eliminado de las props ---
+export function DataTable({ columns, data, onDeleteSelectedItems }) {
   const [sorting, setSorting] = React.useState([]);
-  const [columnFilters, setColumnFilters] = React.useState([]);
+  const [columnFilters, setColumnFilters] = React.useState([]); // Esto se queda, es inofensivo
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
@@ -32,7 +34,7 @@ export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: getFilteredRowModel(), // Se queda para la selección/paginación
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
@@ -48,21 +50,13 @@ export function DataTable({ columns, data, filterColumn, onDeleteSelectedItems }
   return (
     <div>
       {/* --- Barra de Herramientas Superior (Filtro y Acciones) --- */}
-      <div className="flex items-center justify-between py-4">
-        <Input
-          placeholder={`Filtrar por ${filterColumn}...`}
-          value={(table.getColumn(filterColumn)?.getFilterValue()) ?? ""}
-          onChange={(event) =>
-            table.getColumn(filterColumn)?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm bg-slate-800 border-slate-700"
-        />
+      <div className="flex items-center justify-end py-4"> {/* ¡CAMBIO! se quita justify-between */}
+        
+        {/* --- ¡CAMBIO! El <Input> ha sido eliminado de este archivo --- */}
+
         {selectedRowCount > 0 && (
           <Button
             variant="destructive"
-            // --- ¡CAMBIO CLAVE AQUÍ! ---
-            // Ahora pasamos los objetos de fila completos, no solo los índices.
-            // Esto le da al componente padre toda la información que necesita.
             onClick={() => onDeleteSelectedItems(table.getFilteredSelectedRowModel().rows)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
