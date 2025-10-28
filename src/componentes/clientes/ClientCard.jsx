@@ -1,15 +1,17 @@
 import React from 'react';
-import { Mail, Phone, MapPin } from 'lucide-react'; // Importamos los íconos
+import { Mail, Phone, MapPin } from 'lucide-react'; // Icons are fine
 
 const ClientCard = ({ client }) => {
   return (
-    <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 h-full flex flex-col cursor-pointer transition-colors hover:bg-slate-700">
-      {/* Sección principal con el nombre */}
+    // --- FIX 1: Refactor container styles ---
+    <div className="bg-card p-4 rounded-lg border h-full flex flex-col cursor-pointer transition-colors hover:bg-accent">
+      
       <div className="flex-grow">
-        <h3 className="font-bold text-white truncate mb-3">{client.nombre}</h3>
-        
-        {/* Sección de detalles con íconos */}
-        <div className="space-y-2 text-sm text-slate-400">
+        {/* --- FIX 2: Refactor title color --- */}
+        <h3 className="font-bold text-card-foreground truncate mb-3">{client.nombre}</h3>
+
+        {/* --- FIX 3: Refactor detail text color --- */}
+        <div className="space-y-2 text-sm text-muted-foreground">
           {/* Email */}
           {client.email && (
             <div className="flex items-center gap-2">
@@ -18,7 +20,7 @@ const ClientCard = ({ client }) => {
             </div>
           )}
 
-          {/* Teléfono */}
+          {/* Phone */}
           {client.telefono && (
             <div className="flex items-center gap-2">
               <Phone size={14} className="flex-shrink-0" />
@@ -26,7 +28,7 @@ const ClientCard = ({ client }) => {
             </div>
           )}
 
-          {/* Ciudad */}
+          {/* City */}
           {client.direccion?.ciudad && (
             <div className="flex items-center gap-2">
               <MapPin size={14} className="flex-shrink-0" />

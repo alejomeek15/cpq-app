@@ -15,18 +15,16 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Esta función es la que se encarga de rellenar el formulario.
-  // Se ejecuta cada vez que el componente recibe una 'condition' para editar.
+  // useEffect to fill form (no changes needed)
   useEffect(() => {
     if (condition) {
-      // Si estamos editando, llena el campo con el nombre existente.
       setName(condition.nombre);
     } else {
-      // Si estamos creando una nueva, se asegura de que el campo esté vacío.
       setName('');
     }
   }, [condition]);
 
+  // handleSubmit logic (no changes needed)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name) return;
@@ -34,25 +32,29 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
     setLoading(true);
     try {
       if (condition) {
-        // Editar condición existente
+        // Edit existing condition
         const docRef = doc(db, 'condicionesPago', condition.id);
         await updateDoc(docRef, { nombre: name });
       } else {
-        // Crear nueva condición
+        // Create new condition
         const collectionRef = collection(db, 'condicionesPago');
         await addDoc(collectionRef, {
           nombre: name,
           posicion: itemCount,
-          activo: true, // <-- ¡CAMBIO! Se añade el estado 'activo' por defecto.
+          activo: true, // Default to active
         });
       }
-      onBack(true);
+      onBack(true); // Signal success
     } catch (error) {
       console.error("Error al guardar la condición:", error);
+      // Consider adding a user-facing error notification here
       setLoading(false);
     }
+    // No need for finally setLoading(false) if onBack navigates away
   };
 
+  // Base UI components (Card, CardHeader, CardTitle, CardDescription)
+  // should already be theme-aware.
   return (
     <Card className="max-w-lg mx-auto">
       <CardHeader>
@@ -62,11 +64,14 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
+        {/* CardContent should be theme-aware */}
         <CardContent>
           <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium leading-none">
+            {/* --- FIX: Add text-foreground to the label --- */}
+            <label htmlFor="name" className="text-sm font-medium leading-none text-foreground">
               Nombre
             </label>
+            {/* Input should be theme-aware */}
             <Input
               id="name"
               type="text"
@@ -77,7 +82,9 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
             />
           </div>
         </CardContent>
+        {/* CardFooter should be theme-aware */}
         <CardFooter className="flex justify-end gap-2">
+          {/* Buttons use theme-aware variants */}
           <Button type="button" variant="ghost" onClick={() => onBack()}>
             Cancelar
           </Button>

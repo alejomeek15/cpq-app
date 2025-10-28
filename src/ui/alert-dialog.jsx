@@ -1,7 +1,9 @@
+// --- /Users/alejomeek/Documents/cpq-app/src/ui/alert-dialog.jsx (Refactorizado) ---
 import * as React from 'react'
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { Button } from '@/ui/button.jsx' // <-- ¡CAMBIO 1! Importar Button
 
 function cn(...inputs) {
   return twMerge(clsx(inputs))
@@ -45,29 +47,37 @@ const AlertDialogFooter = ({ className, ...props }) => (
 )
 
 const AlertDialogTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Title ref={ref} className={cn('text-lg font-semibold text-text-primary', className)} {...props} />
+  <AlertDialogPrimitive.Title 
+    ref={ref} 
+    // --- ¡CAMBIO 2! 'text-text-primary' -> 'text-foreground' ---
+    className={cn('text-lg font-semibold text-foreground', className)} 
+    {...props} 
+  />
 ))
 
 const AlertDialogDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Description ref={ref} className={cn('text-sm text-text-secondary', className)} {...props} />
+  <AlertDialogPrimitive.Description 
+    ref={ref} 
+    // --- ¡CAMBIO 3! 'text-text-secondary' -> 'text-muted-foreground' ---
+    className={cn('text-sm text-muted-foreground', className)} 
+    {...props} 
+  />
 ))
 
-// --- Botones con Estilos Personalizados ---
-const buttonVariants = (variant, size) => {
-    // Aquí podrías tener una lógica más compleja si tuvieras más variantes
-    const base = 'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50';
-    if (variant === 'destructive') {
-        return `${base} bg-red-600 text-white shadow-sm hover:bg-red-700 px-4 py-2`;
-    }
-    return `${base} bg-surface border border-border text-text-primary shadow-sm hover:bg-white/5 px-4 py-2`;
-};
+// --- ¡CAMBIO 4! Eliminada la función 'buttonVariants' ---
 
+// --- ¡CAMBIO 5! AlertDialogAction usa Button ---
 const AlertDialogAction = React.forwardRef(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Action ref={ref} className={cn(buttonVariants('destructive'), className)} {...props} />
+  <AlertDialogPrimitive.Action ref={ref} asChild>
+    <Button variant="destructive" className={className} {...props} />
+  </AlertDialogPrimitive.Action>
 ))
 
+// --- ¡CAMBIO 6! AlertDialogCancel usa Button ---
 const AlertDialogCancel = React.forwardRef(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Cancel ref={ref} className={cn(buttonVariants('default'), 'mt-2 sm:mt-0', className)} {...props} />
+  <AlertDialogPrimitive.Cancel ref={ref} asChild>
+    <Button variant="outline" className={cn('mt-2 sm:mt-0', className)} {...props} />
+  </AlertDialogPrimitive.Cancel>
 ))
 
 export {

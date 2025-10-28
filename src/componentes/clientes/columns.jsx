@@ -1,12 +1,12 @@
 import { Button } from "@/ui/button.jsx";
 import { Checkbox } from "@/ui/checkbox.jsx";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger 
+  DropdownMenuTrigger
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
@@ -30,7 +30,7 @@ export const createColumns = (onEditClient, onDeleteClient) => [
     enableSorting: false,
     enableHiding: false,
   },
-  
+
   {
     accessorKey: "nombre",
     header: ({ column }) => {
@@ -39,8 +39,6 @@ export const createColumns = (onEditClient, onDeleteClient) => [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          {/* --- ¡CAMBIO 1! --- */}
-          {/* El encabezado ahora solo dice "Nombre". */}
           Nombre
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
@@ -51,7 +49,8 @@ export const createColumns = (onEditClient, onDeleteClient) => [
       return (
         <Button
           variant="link"
-          className="p-0 h-auto font-medium text-white"
+          // --- FIX HERE! Removed 'text-white' ---
+          className="p-0 h-auto font-medium"
           onClick={() => onEditClient(client.id)}
         >
           {client.nombre}
@@ -60,9 +59,6 @@ export const createColumns = (onEditClient, onDeleteClient) => [
     },
   },
 
-  /* --- ¡CAMBIO 2! --- */
-  /* Se eliminó la columna "Contacto Principal" por completo. */
-
   { accessorKey: "email", header: "Email" },
   { accessorKey: "telefono", header: "Teléfono" },
   {
@@ -70,7 +66,7 @@ export const createColumns = (onEditClient, onDeleteClient) => [
     id: "ciudad",
     header: "Ciudad",
   },
-  
+
   {
     id: "actions",
     cell: ({ row }) => {
@@ -89,7 +85,7 @@ export const createColumns = (onEditClient, onDeleteClient) => [
               Editar Cliente
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
               onClick={() => onDeleteClient(client.id)}
             >

@@ -10,18 +10,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/ui/card.jsx";
+// Importar icono de flecha si no lo tienes globalmente
+import { ArrowLeft } from 'lucide-react'; 
 
 const ClientForm = ({ db, clientId, onBack }) => {
+    // --- Lógica de estado y datos (sin cambios) ---
     const [client, setClient] = useState({
-        tipo: 'persona',
-        nombre: '',
-        email: '',
-        telefono: '',
+        tipo: 'persona', nombre: '', email: '', telefono: '',
         direccion: { calle: '', ciudad: '', departamento: '', pais: '' },
-        identificacionNumero: '',
-        sitioWeb: '',
-        nombreContacto: '',
-        puestoTrabajo: ''
+        identificacionNumero: '', sitioWeb: '', nombreContacto: '', puestoTrabajo: ''
     });
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState('');
@@ -93,6 +90,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
         }
     };
     
+    // NOTA: handleDelete usa window.confirm. Considera reemplazarlo con tu AlertDialog.
     const handleDelete = async () => {
         if (window.confirm('¿Estás seguro?')) {
             try {
@@ -102,7 +100,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
         }
     };
 
-    if (loading) return <p className="text-center">Cargando formulario...</p>;
+    if (loading) return <p className="text-center text-muted-foreground">Cargando formulario...</p>; // <-- Usar text-muted-foreground
 
     return (
         <Card className="w-full max-w-4xl mx-auto">
@@ -110,7 +108,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={() => onBack(false)} className="h-8 w-8">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            <ArrowLeft className="h-5 w-5" /> 
                         </Button>
                         <div>
                             <CardTitle>{isEditMode ? client.nombre : 'Nuevo Cliente'}</CardTitle>
@@ -129,8 +127,15 @@ const ClientForm = ({ db, clientId, onBack }) => {
                 <CardContent className="space-y-6">
                     <div>
                         <div className="flex items-center gap-6 mb-4">
-                            <label className="flex items-center gap-2"><input type="radio" name="tipo" value="persona" checked={client.tipo === 'persona'} onChange={handleTypeChange} /> Persona</label>
-                            <label className="flex items-center gap-2"><input type="radio" name="tipo" value="compañia" checked={client.tipo === 'compañia'} onChange={handleTypeChange} /> Compañía</label>
+                            {/* --- ¡CAMBIO 1! Labels con color de texto y radio buttons con 'accent-primary' --- */}
+                            <label className="flex items-center gap-2 text-sm text-foreground">
+                              <input type="radio" name="tipo" value="persona" checked={client.tipo === 'persona'} onChange={handleTypeChange} className="accent-primary" />
+                              Persona
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-foreground">
+                              <input type="radio" name="tipo" value="compañia" checked={client.tipo === 'compañia'} onChange={handleTypeChange} className="accent-primary"/>
+                              Compañía
+                            </label>
                         </div>
                         <Input 
                            type="text" 
@@ -165,15 +170,14 @@ const ClientForm = ({ db, clientId, onBack }) => {
                             )}
                             <Input type="text" name="identificacionNumero" value={client.identificacionNumero} onChange={handleChange} placeholder={client.tipo === 'compañia' ? 'NIT' : 'Número de Identificación'} />
                             {client.tipo === 'compañia' && (
-                               // --- ¡CAMBIO AQUÍ! ---
-                               // Cambiamos 'type="url"' por 'type="text"' para eliminar la validación del navegador.
                                <Input type="text" name="sitioWeb" value={client.sitioWeb} onChange={handleChange} placeholder="Sitio web" />
                             )}
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-4">
-                    <div className="text-sm font-medium text-slate-400 flex-grow">{status}</div>
+                    {/* --- ¡CAMBIO 2! Mensaje de estado con 'text-muted-foreground' --- */}
+                    <div className="text-sm font-medium text-muted-foreground flex-grow">{status}</div>
                     <Button type="button" variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
                     <Button type="submit" disabled={loading}>{loading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar')}</Button>
                 </CardFooter>

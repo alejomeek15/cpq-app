@@ -61,7 +61,8 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
       <div className="text-center">
         <Button
           variant="link"
-          className="p-0 h-auto font-medium text-white"
+          // --- ¡CAMBIO AQUÍ! Eliminamos 'text-white' ---
+          className="p-0 h-auto font-medium" 
           onClick={() => onEditQuote(row.original.id)}
         >
           {row.getValue("numero")}
@@ -86,9 +87,6 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
         currency: "COP",
         minimumFractionDigits: 0,
       }).format(amount);
-      
-      // --- ¡CAMBIO AQUÍ! ---
-      // Cambiamos 'text-right' por 'text-center'
       return <div className="text-center font-medium">{formatted}</div>;
     },
   },

@@ -1,18 +1,16 @@
+/* --- src/index.css (Corregido) --- */
+
 /* 1. Importa la fuente 'Inter' desde Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display.swap');
 
 /* 2. Directivas base de Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 3. Define los estilos base y las variables de color para el sidebar */
+/* 3. Definición de variables de color y estilos base */
 @layer base {
-  body {
-    @apply bg-background text-text-primary antialiased;
-  }
-
-  /* Variables de color para el Sidebar (Tema Claro por defecto) */
+  /* Variables para el Tema Claro (default) */
   :root {
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -48,7 +46,7 @@
     --radius: 0.5rem;
   }
 
-  /* Variables de color para el Sidebar (Tema Oscuro) */
+  /* Variables para el Tema Oscuro */
   .dark {
     --sidebar: oklch(0.14 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
@@ -89,6 +87,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    /* ¡CAMBIO! Usamos 'text-foreground' de shadcn */
+    @apply bg-background text-foreground antialiased;
   }
 }

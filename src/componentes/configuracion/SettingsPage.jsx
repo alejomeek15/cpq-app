@@ -10,16 +10,15 @@ import {
 } from "@/ui/breadcrumb.jsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs.jsx";
 
-// Importamos los módulos existentes
+// Import modules
 import ConditionsModule from './condiciones/ConditionsModule.jsx';
 import TaxesModule from './impuestos/TaxesModule.jsx';
-// **NUEVO: Importamos el módulo de estilos (aún no lo hemos creado)**
-import QuoteStylesModule from './estilos/QuoteStylesModule.jsx';
+import QuoteStylesModule from './estilos/QuoteStylesModule.jsx'; // Assuming this exists
 
 const SettingsPage = ({ db, navigate }) => {
   return (
     <div className="w-full">
-      {/* --- CABECERA DE LA PÁGINA CON BREADCRUMB --- */}
+      {/* --- Page Header with Breadcrumb (No changes needed) --- */}
       <div className="mb-8">
         <SidebarTrigger />
         <div className="mt-4">
@@ -39,27 +38,29 @@ const SettingsPage = ({ db, navigate }) => {
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold mb-8">Gestión de Parámetros</h1>
+      {/* --- FIX: Add text-foreground to the heading --- */}
+      <h1 className="text-2xl font-bold mb-8 text-foreground">Gestión de Parámetros</h1>
 
-      {/* **CAMBIO: Ajustamos el valor por defecto y las columnas del grid** */}
+      {/* --- Tabs (No changes needed, uses UI components) --- */}
       <Tabs defaultValue="condiciones" className="w-full">
-        {/* **CAMBIO: grid-cols-3 para 3 pestañas y añadimos el nuevo Trigger** */}
-        <TabsList className="grid w-full grid-cols-3 max-w-lg"> {/* Ajustado a 3 columnas y un poco más ancho */}
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="condiciones">Condiciones de Pago</TabsTrigger>
           <TabsTrigger value="impuestos">Impuestos</TabsTrigger>
-          <TabsTrigger value="estilos">Estilos de Cotización</TabsTrigger> {/* Nueva Pestaña */}
+          <TabsTrigger value="estilos">Estilos de Cotización</TabsTrigger>
         </TabsList>
 
         <TabsContent value="condiciones" className="mt-6">
+          {/* ConditionsModule will need refactoring */}
           <ConditionsModule db={db} />
         </TabsContent>
         
         <TabsContent value="impuestos" className="mt-6">
+          {/* TaxesModule will need refactoring */}
           <TaxesModule db={db} />
         </TabsContent>
 
-        {/* **NUEVO: Contenido para la pestaña de estilos** */}
         <TabsContent value="estilos" className="mt-6">
+           {/* QuoteStylesModule will need refactoring */}
           <QuoteStylesModule db={db} />
         </TabsContent>
       </Tabs>

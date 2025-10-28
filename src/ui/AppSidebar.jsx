@@ -1,3 +1,4 @@
+// --- AppSidebar.jsx ---
 import React from 'react';
 import { LayoutDashboard, Users, FileText, Settings, BookOpen } from 'lucide-react';
 import {
@@ -12,6 +13,7 @@ import {
   SidebarMenuButton,
 } from './sidebar.jsx';
 import { useSidebar } from './sidebar.jsx';
+import { ModeToggle } from '@/ui/mode-toggle.jsx'; // <-- ¡CAMBIO 1! Importar el Toggle
 
 export const AppSidebar = ({ navigate, route }) => {
   const { state } = useSidebar();
@@ -43,7 +45,6 @@ export const AppSidebar = ({ navigate, route }) => {
             CPQ
           </span>
         </div>
-        {/* El SidebarTrigger ha sido eliminado de aquí */}
       </SidebarHeader>
 
       <SidebarContent>
@@ -65,7 +66,10 @@ export const AppSidebar = ({ navigate, route }) => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter />
+      {/* --- ¡CAMBIO 2! Añadimos el ModeToggle al Footer --- */}
+      <SidebarFooter>
+        <ModeToggle />
+      </SidebarFooter>
     </Sidebar>
   );
 };

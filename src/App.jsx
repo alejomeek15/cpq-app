@@ -1,7 +1,11 @@
+// --- src/App.jsx (Actualizado) ---
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
+
+// --- ¡CAMBIO! Ya no importamos ModeToggle aquí ---
+import { ThemeProvider } from '@/ui/theme-provider.jsx';
 
 // Importa los componentes principales del layout y las páginas
 import { SidebarProvider } from '@/ui/sidebar.jsx';
@@ -25,34 +29,31 @@ export default function App() {
     signInAnonymously(auth).catch((error) => console.error("Error de autenticación anónima", error));
   }, []);
 
-  // Función para renderizar la página actual según la ruta
+  // Función para renderizar la página actual según la ruta (sin cambios)
   const renderRoute = () => {
     switch (route) {
-      // --- ¡CAMBIO AQUÍ! ---
-      // 1. Se añade la prop 'db' al Dashboard.
       case 'dashboard': return <Dashboard db={db} navigate={setRoute} />;
-      
       case 'clients': return <ClientesPage db={db} navigate={setRoute} />;
       case 'catalog': return <CatalogoPage db={db} navigate={setRoute} />;
       case 'quotes': return <QuotesPage db={db} navigate={setRoute} />;
       case 'settings': return <SettingsPage db={db} navigate={setRoute} />;
-      
-      // 2. También se añade 'db' al caso por defecto.
       default: return <Dashboard db={db} navigate={setRoute} />;
     }
   };
 
   return (
-    <SidebarProvider className="min-h-screen bg-gray-900 text-white">
-      <AppSidebar navigate={setRoute} route={route} />
+    <ThemeProvider defaultTheme="dark" storageKey="cpq-app-theme">
       
-      {/* --- ¡AQUÍ ESTÁ LA SOLUCIÓN! ---
-        Añadimos 'min-w-0' para forzar al 'main' a respetar
-        el ancho de la pantalla y no estirarse con su contenido.
-      */}
-      <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 min-w-0">
-        {renderRoute()}
-      </main>
-    </SidebarProvider>
+      <SidebarProvider className="min-h-screen bg-background text-foreground">
+        <AppSidebar navigate={setRoute} route={route} />
+        
+        <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 min-w-0">
+          
+          {/* --- ¡CAMBIO! El ModeToggle ha sido eliminado de aquí --- */}
+          
+          {renderRoute()}
+        </main>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

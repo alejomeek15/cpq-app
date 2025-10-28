@@ -14,26 +14,26 @@ const ListIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0
 const CardsIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>;
 const BoardIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zm7 0a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1h-4a1 1 0 01-1-1V3zm7 0a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1h-4a1 1 0 01-1-1V3z"></path></svg>;
 const PlusIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>;
-const SearchIcon = () => <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>; 
+// --- ¡CAMBIO 1! 'text-slate-400' -> 'text-muted-foreground' ---
+const SearchIcon = () => <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>; 
 
-// --- ¡CAMBIO 1! Función helper para normalizar texto (ignora tildes y mayúsculas) ---
+// --- Función 'normalizarTexto' (sin cambios) ---
 const normalizarTexto = (str) => {
   if (!str) return '';
   return str
     .toLowerCase()
-    .normalize("NFD") // Separa letras de acentos (ej: "é" -> "e" + "´")
-    .replace(/[\u0300-\u036f]/g, ""); // Elimina los acentos
+    .normalize("NFD") 
+    .replace(/[\u0300-\u036f]/g, "");
 };
-// --- FIN DEL CAMBIO ---
 
 const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, loadingClients }) => {
+    // --- Toda la lógica de estado (useState, useMemo, etc.) no cambia ---
     const [quotes, setQuotes] = useState([]);
     const [loadingQuotes, setLoadingQuotes] = useState(true);
     const [error, setError] = useState(null);
     const [view, setView] = useState('list');
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [itemsToDelete, setItemsToDelete] = useState([]);
-    
     const [filtroGlobal, setFiltroGlobal] = useState('');
 
     const handleDeleteQuote = (quoteId) => {
@@ -68,28 +68,20 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
 
     useEffect(() => { fetchQuotes(); }, [fetchQuotes]);
 
-    // --- ¡CAMBIO 2! El filtro ahora usa la función 'normalizarTexto' ---
     const quotesFiltrados = useMemo(() => {
-      // Normalizamos el término de búsqueda UNA SOLA VEZ
       const terminoNormalizado = normalizarTexto(filtroGlobal);
-      
       if (!terminoNormalizado) {
-        return quotes; // Sin filtro, devuelve todo
+        return quotes;
       }
-
       return quotes.filter(quote => {
-        // Normalizamos los datos de la cotización antes de comparar
         const numeroNormalizado = normalizarTexto(quote.numero);
         const clienteNormalizado = normalizarTexto(quote.clienteNombre);
-
         return (
           numeroNormalizado.includes(terminoNormalizado) ||
           clienteNormalizado.includes(terminoNormalizado)
         );
       });
     }, [quotes, filtroGlobal]);
-    // --- FIN DEL CAMBIO ---
-
 
     const handleDeleteSelected = (selectedRows) => {
         const idsToDelete = selectedRows.map(row => row.original.id);
@@ -132,35 +124,53 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold tracking-tight">Cotizaciones</h1>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
-                        <button onClick={() => setView('list')} className={`p-1.5 rounded-md ${view === 'list' ? 'bg-slate-700' : 'hover:text-white'}`} title="Vista de Lista">
+                    {/* --- ¡CAMBIO 2! Refactor del cambiador de vistas --- */}
+                    <div className="flex items-center bg-muted rounded-lg p-1 border">
+                        <button 
+                          onClick={() => setView('list')} 
+                          className={`p-1.5 rounded-md ${view === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`} 
+                          title="Vista de Lista"
+                        >
                           <ListIcon />
                         </button>
-                        <button onClick={() => setView('card')} className={`p-1.5 rounded-md ${view === 'card' ? 'bg-slate-700' : 'hover:text-white'}`} title="Vista de Tarjetas">
+                        <button 
+                          onClick={() => setView('card')} 
+                          className={`p-1.5 rounded-md ${view === 'card' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`} 
+                          title="Vista de Tarjetas"
+                        >
                           <CardsIcon />
                         </button>
-                        <button onClick={() => setView('board')} className={`p-1.5 rounded-md ${view === 'board' ? 'bg-slate-700' : 'hover:text-white'}`} title="Vista de Tablero">
+                        <button 
+                          onClick={() => setView('board')} 
+                          className={`p-1.5 rounded-md ${view === 'board' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`} 
+                          title="Vista de Tablero"
+                        >
                           <BoardIcon />
                         </button>
                     </div>
+                    {/* (El botón de 'Nueva Cotización' usa 'primary' y está bien) */}
                     <Button onClick={onAddNewQuote}>
                         <PlusIcon className="mr-2 h-4 w-4" /> Nueva Cotización
                     </Button>
                 </div>
             </div>
 
+            {/* --- ¡CAMBIO 3! Refactor de la barra de búsqueda --- */}
             <div className="mb-4 relative">
               <Input
                 placeholder="Filtrar por número o cliente..."
                 value={filtroGlobal}
                 onChange={(e) => setFiltroGlobal(e.target.value)}
-                className="max-w-sm bg-slate-800 border-slate-700 pl-10"
+                // Eliminamos las clases 'bg-slate-800 border-slate-700'
+                // El componente Input de shadcn ya es 'theme-aware'
+                className="max-w-sm pl-10"
               />
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
                 <SearchIcon />
               </div>
             </div>
 
+            {/* --- (Sin cambios en la lógica de renderizado) --- */}
             {quotesFiltrados.length === 0 ? (
                 <div className="text-center py-16">
                   {filtroGlobal ? "No hay resultados para tu búsqueda." : "No hay cotizaciones."}
