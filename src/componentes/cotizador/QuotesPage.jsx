@@ -11,18 +11,20 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/ui/breadcrumb.jsx';
-import { SidebarTrigger } from '@/ui/sidebar.jsx';
+// --- REMOVE SidebarTrigger import ---
+// import { SidebarTrigger } from '@/ui/sidebar.jsx';
 
 const QuotesPage = ({ db, navigate }) => {
-    // **CORRECCIÓN AQUÍ: Se eliminó el '=' extra**
     const [view, setView] = useState('list');
     const [currentQuoteId, setCurrentQuoteId] = useState(null);
     const [notification, setNotification] = useState(null);
     const [clients, setClients] = useState([]);
     const [loadingClients, setLoadingClients] = useState(true);
 
+    // useEffect to fetch clients (no changes)
     useEffect(() => {
         const fetchClients = async () => {
+            setLoadingClients(true); // Set loading true at the start
             try {
                 const querySnapshot = await getDocs(collection(db, "clientes"));
                 const clientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -38,27 +40,25 @@ const QuotesPage = ({ db, navigate }) => {
                 setLoadingClients(false);
             }
         };
-
         fetchClients();
     }, [db]);
 
+    // showListView function (no changes)
     const showListView = (message = null) => {
         setView('list');
         setCurrentQuoteId(null);
         if (message) {
-            setNotification({
-                type: 'success',
-                title: 'Éxito',
-                message: message
-            });
+            setNotification({ type: 'success', title: 'Éxito', message: message });
         }
     };
 
+    // showFormView function (no changes)
     const showFormView = (quoteId = null) => {
         setCurrentQuoteId(quoteId);
         setView('form');
     };
 
+    // renderBreadcrumb function (no changes)
     const renderBreadcrumb = () => (
       <Breadcrumb>
         <BreadcrumbList>
@@ -94,27 +94,27 @@ const QuotesPage = ({ db, navigate }) => {
     return (
         <div className="w-full">
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
-            
+
+            {/* --- REMOVE SidebarTrigger and adjust structure --- */}
+            {/* Breadcrumb now sits directly here, mb-8 gives it space */}
             <div className="mb-8">
-                <SidebarTrigger />
-                <div className="mt-4">
-                  {renderBreadcrumb()}
-                </div>
+              {renderBreadcrumb()}
             </div>
-            
+
+            {/* Conditional rendering for List or Form (no changes) */}
             {view === 'list' ? (
-                <QuoteList 
-                    db={db} 
-                    onAddNewQuote={() => showFormView(null)} 
+                <QuoteList
+                    db={db}
+                    onAddNewQuote={() => showFormView(null)}
                     onEditQuote={showFormView}
                     setNotification={setNotification}
                     clients={clients}
                     loadingClients={loadingClients}
                 />
             ) : (
-                <QuoteForm 
-                    db={db} 
-                    quoteId={currentQuoteId} 
+                <QuoteForm
+                    db={db}
+                    quoteId={currentQuoteId}
                     onBack={(saved) => showListView(saved ? 'Cotización guardada correctamente.' : null)}
                 />
             )}

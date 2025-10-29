@@ -1,5 +1,6 @@
 import React from 'react';
-import { SidebarTrigger } from '@/ui/sidebar.jsx';
+// --- REMOVE SidebarTrigger import ---
+// import { SidebarTrigger } from '@/ui/sidebar.jsx';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,35 +14,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs.jsx";
 // Import modules
 import ConditionsModule from './condiciones/ConditionsModule.jsx';
 import TaxesModule from './impuestos/TaxesModule.jsx';
-import QuoteStylesModule from './estilos/QuoteStylesModule.jsx'; // Assuming this exists
+import QuoteStylesModule from './estilos/QuoteStylesModule.jsx'; // Assuming this exists and is theme-aware
 
 const SettingsPage = ({ db, navigate }) => {
   return (
     <div className="w-full">
-      {/* --- Page Header with Breadcrumb (No changes needed) --- */}
+      {/* --- Page Header with Breadcrumb --- */}
+      {/* --- REMOVE SidebarTrigger and adjust structure --- */}
+      {/* Breadcrumb now sits directly here, mb-8 gives it space */}
       <div className="mb-8">
-        <SidebarTrigger />
-        <div className="mt-4">
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
-                            Dashboard
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>Configuración</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
-        </div>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
+                Dashboard
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Configuración</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
-      {/* --- FIX: Add text-foreground to the heading --- */}
+      {/* Heading uses text-foreground (OK) */}
       <h1 className="text-2xl font-bold mb-8 text-foreground">Gestión de Parámetros</h1>
 
-      {/* --- Tabs (No changes needed, uses UI components) --- */}
+      {/* Tabs use UI components (OK) */}
       <Tabs defaultValue="condiciones" className="w-full">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="condiciones">Condiciones de Pago</TabsTrigger>
@@ -50,17 +50,17 @@ const SettingsPage = ({ db, navigate }) => {
         </TabsList>
 
         <TabsContent value="condiciones" className="mt-6">
-          {/* ConditionsModule will need refactoring */}
+          {/* ConditionsModule uses refactored children (OK) */}
           <ConditionsModule db={db} />
         </TabsContent>
-        
+
         <TabsContent value="impuestos" className="mt-6">
-          {/* TaxesModule will need refactoring */}
+          {/* TaxesModule uses refactored children (OK) */}
           <TaxesModule db={db} />
         </TabsContent>
 
         <TabsContent value="estilos" className="mt-6">
-           {/* QuoteStylesModule will need refactoring */}
+          {/* QuoteStylesModule was refactored (OK) */}
           <QuoteStylesModule db={db} />
         </TabsContent>
       </Tabs>

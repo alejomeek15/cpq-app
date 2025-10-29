@@ -1,11 +1,11 @@
-// --- AppSidebar.jsx ---
+// --- AppSidebar.jsx (Updated - ModeToggle Removed) ---
 import React from 'react';
 import { LayoutDashboard, Users, FileText, Settings, BookOpen } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-  SidebarFooter,
+  SidebarFooter, // Keep Footer or remove if empty
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
 } from './sidebar.jsx';
 import { useSidebar } from './sidebar.jsx';
-import { ModeToggle } from '@/ui/mode-toggle.jsx'; // <-- ¡CAMBIO 1! Importar el Toggle
+// ModeToggle import removed
 
 export const AppSidebar = ({ navigate, route }) => {
   const { state } = useSidebar();
@@ -66,9 +66,9 @@ export const AppSidebar = ({ navigate, route }) => {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* --- ¡CAMBIO 2! Añadimos el ModeToggle al Footer --- */}
+      {/* ModeToggle removed from here */}
       <SidebarFooter>
-        <ModeToggle />
+        {/* Footer is now empty, you can add other items later or remove the tag */}
       </SidebarFooter>
     </Sidebar>
   );

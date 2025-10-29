@@ -11,7 +11,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/ui/breadcrumb.jsx";
-import { SidebarTrigger } from '@/ui/sidebar.jsx';
+// --- REMOVE SidebarTrigger import ---
+// import { SidebarTrigger } from '@/ui/sidebar.jsx';
 
 const ClientesPage = ({ db, navigate }) => {
     const [view, setView] = useState('list');
@@ -35,7 +36,6 @@ const ClientesPage = ({ db, navigate }) => {
         setView('import');
     };
 
-    // Quitamos el margen de aquí para controlar el espaciado desde el layout principal.
     const renderBreadcrumb = () => (
       <Breadcrumb>
         <BreadcrumbList>
@@ -75,15 +75,11 @@ const ClientesPage = ({ db, navigate }) => {
     return (
         <div className="w-full">
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
-            
-            <div className="mb-8">
-                {/* El botón del sidebar se renderiza primero en su propia línea */}
-                <SidebarTrigger />
 
-                {/* El Breadcrumb se renderiza debajo, con un pequeño margen superior para separarlo */}
-                <div className="mt-4">
-                  {renderBreadcrumb()}
-                </div>
+            {/* --- REMOVE SidebarTrigger and adjust structure --- */}
+            {/* The Breadcrumb now sits directly here, mb-8 gives it space */}
+            <div className="mb-8">
+              {renderBreadcrumb()}
             </div>
 
             {renderContent()}

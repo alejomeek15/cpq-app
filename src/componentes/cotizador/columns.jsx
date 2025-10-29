@@ -1,15 +1,16 @@
-import React from 'react';
+import React from 'react'; // Removed useState, useEffect
+// Removed doc, getDoc imports
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import QuotePDF from './QuotePDF.jsx';
+import QuotePDF from './QuotePDF.jsx'; // This is now the selector component
 import { Button } from "@/ui/button.jsx";
 import { Checkbox } from "@/ui/checkbox.jsx";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger 
+  DropdownMenuTrigger
 } from "@/ui/dropdown-menu.jsx";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
@@ -24,7 +25,11 @@ const getStatusBadge = (status = 'Borrador') => {
     return `px-2.5 py-0.5 text-xs font-semibold rounded-full ${styles[s] || 'bg-gray-500/10 text-gray-400'}`;
 };
 
-export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
+// --- REMOVED DownloadPDFMenuItem sub-component ---
+
+// --- Función principal createColumns ---
+// AHORA ACEPTA 'quoteStyleName' en lugar de 'db'
+export const createColumns = (onEditQuote, onDeleteQuote, clients, quoteStyleName) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -61,8 +66,7 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
       <div className="text-center">
         <Button
           variant="link"
-          // --- ¡CAMBIO AQUÍ! Eliminamos 'text-white' ---
-          className="p-0 h-auto font-medium" 
+          className="p-0 h-auto font-medium"
           onClick={() => onEditQuote(row.original.id)}
         >
           {row.getValue("numero")}
@@ -82,11 +86,7 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
     header: () => <div className="text-center">Total</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("total") || 0);
-      const formatted = new Intl.NumberFormat("es-CO", {
-        style: "currency",
-        currency: "COP",
-        minimumFractionDigits: 0,
-      }).format(amount);
+      const formatted = new Intl.NumberFormat("es-CO", { /* ... */ }).format(amount);
       return <div className="text-center font-medium">{formatted}</div>;
     },
   },
@@ -122,21 +122,26 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients) => [
               <DropdownMenuItem onClick={() => onEditQuote(quote.id)}>
                 Editar Cotización
               </DropdownMenuItem>
+
+              {/* --- MODIFICADO: Pasar styleName directamente --- */}
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   {client ? (
                       <PDFDownloadLink
-                          document={<QuotePDF quote={quote} client={client} />}
+                          // Pasar la prop 'styleName' aquí
+                          document={<QuotePDF quote={quote} client={client} styleName={quoteStyleName} />}
                           fileName={`${quote.numero || 'cotizacion'}.pdf`}
                           style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
                       >
                           {({ loading }) => (loading ? 'Generando...' : 'Descargar PDF')}
                       </PDFDownloadLink>
                   ) : (
-                      <span style={{color: 'gray', fontSize: '12px'}}>Cargando datos...</span>
+                      <span style={{color: 'gray', fontSize: '12px'}}>Cargando datos cliente...</span>
                   )}
               </DropdownMenuItem>
+              {/* --- FIN MODIFICACIÓN --- */}
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
                 onClick={() => onDeleteQuote(quote.id)}
               >
