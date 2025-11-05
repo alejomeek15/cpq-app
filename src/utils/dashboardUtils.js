@@ -1,39 +1,42 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
-import { format, subMonths } from 'date-fns';
-import { es } from 'date-fns/locale';
+// format, subMonths, y es ya no son necesarios para getDashboardStats
+// import { format, subMonths } from 'date-fns';
+// import { es } from 'date-fns/locale';
 
 /**
- * Calcula las métricas principales (KPIs) para la fila superior del dashboard.
+ * Calcula las métricas principales (KPIs) globales para el dashboard.
  * @param {Firestore} db - La instancia de la base de datos de Firestore.
  */
 export async function getDashboardStats(db) {
-  // --- Fechas para filtrar por el mes actual ---
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfMonthTimestamp = Timestamp.fromDate(startOfMonth);
+  // --- Fechas eliminadas ---
+  // const now = new Date();
+  // const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // const startOfMonthTimestamp = Timestamp.fromDate(startOfMonth);
 
-  // --- Consultas a Firestore ---
-  const quotesQuery = query(collection(db, "cotizaciones"), where("fechaCreacion", ">=", startOfMonthTimestamp));
-  const clientsQuery = query(collection(db, "clientes"), where("fechaCreacion", ">=", startOfMonthTimestamp));
+  // --- Consultas a Firestore (Ahora globales, sin filtro de fecha) ---
+  const quotesQuery = query(collection(db, "cotizaciones"));
+  const clientsQuery = query(collection(db, "clientes"));
 
   const [quotesSnapshot, clientsSnapshot] = await Promise.all([
     getDocs(quotesQuery),
     getDocs(clientsQuery)
   ]);
 
-  // --- Procesamiento de los datos ---
-  const quotesThisMonth = quotesSnapshot.docs.map(doc => doc.data());
+  // --- Procesamiento de los datos (Ahora "allQuotes" en lugar de "quotesThisMonth") ---
+  const allQuotes = quotesSnapshot.docs.map(doc => doc.data());
 
-  const totalAprobado = quotesThisMonth
+  const totalAprobado = allQuotes
     .filter(q => q.estado === 'Aprobada')
     .reduce((sum, q) => sum + q.total, 0);
 
-  const cotizacionesCreadas = quotesThisMonth.length;
-  const cotizacionesEnviadas = quotesThisMonth.filter(q => q.estado === 'Enviada' || q.estado === 'Aprobada' || q.estado === 'Rechazada').length;
-  const cotizacionesAprobadas = quotesThisMonth.filter(q => q.estado === 'Aprobada').length;
-  
+  const cotizacionesCreadas = allQuotes.length;
+  // Ajustamos las definiciones para que sean globales
+  const cotizacionesEnviadas = allQuotes.filter(q => q.estado === 'Enviada' || q.estado === 'Aprobada' || q.estado === 'Rechazada').length;
+  const cotizacionesAprobadas = allQuotes.filter(q => q.estado === 'Aprobada').length;
+
   const tasaAprobacion = cotizacionesEnviadas > 0 ? (cotizacionesAprobadas / cotizacionesEnviadas) * 100 : 0;
 
+  // nuevosClientes ahora contará TODOS los clientes
   const nuevosClientes = clientsSnapshot.size;
 
   return {
@@ -45,7 +48,7 @@ export async function getDashboardStats(db) {
 }
 
 /**
- * Obtiene las 5 cotizaciones más recientes.
+ * Obtiene las 5 cotizaciones más recientes. (Sin cambios, ya era global)
  * @param {Firestore} db - La instancia de la base de datos de Firestore.
  */
 export async function getRecentQuotes(db) {
@@ -55,39 +58,43 @@ export async function getRecentQuotes(db) {
 }
 
 /**
- * Agrupa todas las cotizaciones por su estado y cuenta cuántas hay en cada uno.
+ * Agrupa todas las cotizaciones por estado, en el orden del embudo.
  * @param {Firestore} db - La instancia de la base de datos de Firestore.
  */
 export async function getQuotesByStatus(db) {
-  // 1. Preparamos un objeto para contar los estados.
-  const statusCounts = {
-    'Borrador': 0,
-    'Enviada': 0,
-    'En negociación': 0,
-    'Aprobada': 0,
-    'Rechazada': 0,
-    'Vencida': 0,
-  };
+  // 1. Definimos el orden explícito del embudo
+  const funnelOrder = [
+    'Borrador',
+    'Enviada',
+    'En negociación',
+    'Aprobada',
+    'Rechazada',
+    'Vencida',
+  ];
 
-  // 2. Obtenemos TODAS las cotizaciones de la colección.
+  // 2. Usamos un Map para inicializar y preservar el orden
+  const statusCounts = new Map(funnelOrder.map(status => [status, 0]));
+
+  // 3. Obtenemos TODAS las cotizaciones
   const querySnapshot = await getDocs(collection(db, "cotizaciones"));
 
-  // 3. Recorremos cada cotización y aumentamos el contador de su estado.
+  // 4. Contamos cada cotización
   querySnapshot.forEach((doc) => {
     const quote = doc.data();
-    if (quote.estado && statusCounts.hasOwnProperty(quote.estado)) {
-      statusCounts[quote.estado]++;
+    if (quote.estado && statusCounts.has(quote.estado)) {
+      // Incrementamos el contador en el Map
+      statusCounts.set(quote.estado, statusCounts.get(quote.estado) + 1);
     }
   });
 
-  // 4. Convertimos el objeto de conteo al formato que Recharts necesita: [{ name: 'Estado', value: conteo }]
-  //    También filtramos los estados que no tienen ninguna cotización para no saturar el gráfico.
-  const dataForChart = Object.keys(statusCounts)
-    .map(status => ({
-      name: status,
-      value: statusCounts[status],
+  // 5. Convertimos el Map al formato de Recharts, filtrando los que tienen 0
+  // El orden se preservará gracias al Map.
+  const dataForChart = Array.from(statusCounts.entries())
+    .map(([name, value]) => ({
+      name: name,
+      value: value,
     }))
-    .filter(item => item.value > 0);
+    .filter(item => item.value > 0); // Opcional: puedes quitar este filtro si quieres ver estados con 0
 
   return dataForChart;
 }
