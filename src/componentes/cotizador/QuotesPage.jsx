@@ -11,20 +11,25 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/ui/breadcrumb.jsx';
-// --- REMOVE SidebarTrigger import ---
-// import { SidebarTrigger } from '@/ui/sidebar.jsx';
+// (SidebarTrigger ya no se importa aquí)
 
-const QuotesPage = ({ db, navigate }) => {
-    const [view, setView] = useState('list');
-    const [currentQuoteId, setCurrentQuoteId] = useState(null);
+// --- ¡CAMBIO 1! Aceptar nuevas props ---
+const QuotesPage = ({ db, navigate, initialQuoteId, onClearTargetQuote }) => {
+    
+    // --- ¡CAMBIO 2! Estado inicial inteligente ---
+    // Si recibimos un initialQuoteId, empezamos en la vista 'form'
+    const [view, setView] = useState(initialQuoteId ? 'form' : 'list');
+    // Si recibimos un initialQuoteId, lo usamos como el ID actual
+    const [currentQuoteId, setCurrentQuoteId] = useState(initialQuoteId || null);
+    
     const [notification, setNotification] = useState(null);
     const [clients, setClients] = useState([]);
     const [loadingClients, setLoadingClients] = useState(true);
 
-    // useEffect to fetch clients (no changes)
+    // useEffect para cargar clientes (sin cambios)
     useEffect(() => {
         const fetchClients = async () => {
-            setLoadingClients(true); // Set loading true at the start
+            setLoadingClients(true);
             try {
                 const querySnapshot = await getDocs(collection(db, "clientes"));
                 const clientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -43,7 +48,17 @@ const QuotesPage = ({ db, navigate }) => {
         fetchClients();
     }, [db]);
 
-    // showListView function (no changes)
+    // --- ¡CAMBIO 3! useEffect para limpiar el ID en App.jsx ---
+    useEffect(() => {
+        // Si cargamos esta página con un ID específico,
+        // le decimos a App.jsx que "ya lo usamos".
+        if (initialQuoteId) {
+            onClearTargetQuote();
+        }
+        // Lo ejecutamos solo si las props (que vienen de App.jsx) cambian
+    }, [initialQuoteId, onClearTargetQuote]);
+
+    // showListView (sin cambios)
     const showListView = (message = null) => {
         setView('list');
         setCurrentQuoteId(null);
@@ -52,13 +67,13 @@ const QuotesPage = ({ db, navigate }) => {
         }
     };
 
-    // showFormView function (no changes)
+    // showFormView (sin cambios)
     const showFormView = (quoteId = null) => {
         setCurrentQuoteId(quoteId);
         setView('form');
     };
 
-    // renderBreadcrumb function (no changes)
+    // renderBreadcrumb (sin cambios, ya reacciona a 'view' y 'currentQuoteId')
     const renderBreadcrumb = () => (
       <Breadcrumb>
         <BreadcrumbList>
@@ -82,7 +97,8 @@ const QuotesPage = ({ db, navigate }) => {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {currentQuoteId ? 'Editar Cotización' : 'Nueva Cotización'}
+                  {/* Esto funcionará automáticamente gracias al estado inicial */
+                  currentQuoteId ? 'Editar Cotización' : 'Nueva Cotización'}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </>
@@ -94,27 +110,25 @@ const QuotesPage = ({ db, navigate }) => {
     return (
         <div className="w-full">
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
-
-            {/* --- REMOVE SidebarTrigger and adjust structure --- */}
-            {/* Breadcrumb now sits directly here, mb-8 gives it space */}
+            
             <div className="mb-8">
+              {/* SidebarTrigger ya no está aquí (está en App.jsx) */}
               {renderBreadcrumb()}
             </div>
-
-            {/* Conditional rendering for List or Form (no changes) */}
+            
             {view === 'list' ? (
-                <QuoteList
-                    db={db}
-                    onAddNewQuote={() => showFormView(null)}
+                <QuoteList 
+                    db={db} 
+                    onAddNewQuote={() => showFormView(null)} 
                     onEditQuote={showFormView}
                     setNotification={setNotification}
                     clients={clients}
                     loadingClients={loadingClients}
                 />
             ) : (
-                <QuoteForm
-                    db={db}
-                    quoteId={currentQuoteId}
+                <QuoteForm 
+                    db={db} 
+                    quoteId={currentQuoteId} 
                     onBack={(saved) => showListView(saved ? 'Cotización guardada correctamente.' : null)}
                 />
             )}

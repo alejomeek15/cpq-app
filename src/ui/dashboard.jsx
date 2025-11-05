@@ -34,10 +34,12 @@ const Dashboard = ({ db, navigate }) => {
     loadDashboardData();
   }, [db]);
 
-  // handleQuoteClick (sin cambios)
+  // --- ¡CAMBIO AQUÍ! ---
+  // Ahora pasamos el quoteId como segundo argumento a la función navigate
   const handleQuoteClick = (quoteId) => {
-    navigate('quotes');
+    navigate('quotes', quoteId); // 'quotes' es la ruta, quoteId es el payload
   };
+  // --- FIN DEL CAMBIO ---
 
   // Loading state (sin cambios)
   if (loading) {
@@ -55,7 +57,7 @@ const Dashboard = ({ db, navigate }) => {
     <div className="space-y-8">
       <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
 
-      {/* --- CAMBIO 1: Títulos de StatCard actualizados --- */}
+      {/* Stat Cards Grid (sin cambios) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Monto Aprobado"
@@ -79,12 +81,9 @@ const Dashboard = ({ db, navigate }) => {
         />
       </div>
 
-      {/* --- CAMBIO 2: Layout de Gráfico/Tabla actualizado a 2 columnas --- */}
+      {/* Chart and Recent Quotes Grid (sin cambios) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Contenedor del Gráfico (ahora ocupa 1 de 2 columnas) */}
         <div className="bg-card rounded-lg border p-4">
-          {/* --- CAMBIO 3: Título del gráfico actualizado --- */}
           <h3 className="font-bold mb-4 text-foreground">Estado de Cotizaciones</h3>
           {chartData.length > 0 ? (
             <QuotesFunnelChart data={chartData} />
@@ -95,9 +94,9 @@ const Dashboard = ({ db, navigate }) => {
           )}
         </div>
 
-        {/* Contenedor de la Tabla (ahora ocupa 1 de 2 columnas) */}
         <div>
           <h3 className="font-bold mb-4 text-foreground">Cotizaciones Recientes</h3>
+          {/* RecentQuotesTable pasa el quoteId a nuestro handleQuoteClick actualizado */}
           <RecentQuotesTable quotes={recentQuotes} onRowClick={handleQuoteClick} />
         </div>
       </div>
