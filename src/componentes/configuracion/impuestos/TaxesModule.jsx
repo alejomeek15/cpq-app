@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import { doc, deleteDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import TaxesList from './TaxesList.jsx';
 import TaxForm from './TaxForm.jsx';
 import AlertDialog from '@/componentes/comunes/AlertDialog.jsx';
 import Notification from '@/componentes/comunes/Notification.jsx';
 
+// ¡CAMBIO! Ya NO recibe 'user' como prop
 const TaxesModule = ({ db }) => {
+  // ¡NUEVO! Obtener user del Context
+  const { user } = useAuth();
+
   const [view, setView] = useState('list');
   const [currentItem, setCurrentItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [taxes, setTaxes] = useState([]);
   const [notification, setNotification] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0); // <-- 1. AÑADIMOS EL ESTADO DE REFRESCO
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleAddNew = () => {
     setCurrentItem(null);
@@ -29,20 +34,41 @@ const TaxesModule = ({ db }) => {
     setDialogOpen(true);
   };
 
+  // ¡CAMBIO! confirmDeletion ahora usa la ruta anidada
   const confirmDeletion = async () => {
+    // ¡NUEVO! Validar que el usuario esté autenticado
+    if (!user || !user.uid) {
+      setNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Error: Usuario no autenticado.'
+      });
+      setDialogOpen(false);
+      return;
+    }
+
     if (itemToDelete) {
-      await deleteDoc(doc(db, "impuestos", itemToDelete));
-      setItemToDelete(null);
-      // 2. ACTUALIZAMOS LA LLAVE PARA FORZAR EL REFRESCO EN EL HIJO
-      setRefreshKey(prevKey => prevKey + 1);
-      showListView('Impuesto eliminado correctamente.');
+      try {
+        // ¡CAMBIO! Ruta anidada con user.uid
+        await deleteDoc(doc(db, "usuarios", user.uid, "impuestos", itemToDelete));
+        setItemToDelete(null);
+        setRefreshKey(prevKey => prevKey + 1);
+        showListView('Impuesto eliminado correctamente.');
+      } catch (error) {
+        console.error("Error al eliminar el impuesto:", error);
+        setNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Error al eliminar el impuesto.'
+        });
+      }
     }
     setDialogOpen(false);
   };
 
   const showListView = (message = null) => {
     setCurrentItem(null);
-    setView('list'); // Ya no necesitamos el truco de 'list-refresh'
+    setView('list');
     if (message) {
       setNotification({ type: 'success', title: 'Éxito', message });
     }
@@ -58,7 +84,7 @@ const TaxesModule = ({ db }) => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           setTaxes={setTaxes}
-          key={refreshKey} // <-- 3. USAMOS LA LLAVE PARA FORZAR EL RE-RENDERIZADO
+          key={refreshKey}
         />
       ) : (
         <TaxForm

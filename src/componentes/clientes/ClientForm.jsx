@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, addDoc, deleteDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
 import {
@@ -10,11 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/ui/card.jsx";
-// Importar icono de flecha si no lo tienes globalmente
 import { ArrowLeft } from 'lucide-react'; 
 
+// ¡CAMBIO! Ya NO recibe 'user' como prop
 const ClientForm = ({ db, clientId, onBack }) => {
-    // --- Lógica de estado y datos (sin cambios) ---
+    // ¡NUEVO! Extraer 'user' del Context usando el hook
+    const { user } = useAuth();
+
     const [client, setClient] = useState({
         tipo: 'persona', nombre: '', email: '', telefono: '',
         direccion: { calle: '', ciudad: '', departamento: '', pais: '' },
@@ -25,14 +28,22 @@ const ClientForm = ({ db, clientId, onBack }) => {
     const [isEditMode, setIsEditMode] = useState(false);
     
     const fetchClientData = useCallback(async () => {
+        // Guardián: no hacer nada si no hay usuario (aún cargando)
+        if (!user || !user.uid) {
+            setLoading(false);
+            return; 
+        }
+
         if (!clientId) {
             setIsEditMode(false);
             setLoading(false);
             return;
         }
+        
         setIsEditMode(true);
         try {
-            const docRef = doc(db, "clientes", clientId);
+            // Ruta anidada con user.uid
+            const docRef = doc(db, "usuarios", user.uid, "clientes", clientId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -40,12 +51,20 @@ const ClientForm = ({ db, clientId, onBack }) => {
                     ...data,
                     direccion: data.direccion || { calle: '', ciudad: '', departamento: '', pais: '' }
                 });
-            } else { setStatus("Cliente no encontrado."); }
-        } catch (error) { setStatus("Error al cargar el cliente.");
-        } finally { setLoading(false); }
-    }, [db, clientId]);
+            } else { 
+                setStatus("Cliente no encontrado."); 
+            }
+        } catch (error) { 
+            setStatus("Error al cargar el cliente.");
+            console.error("Error al cargar cliente:", error);
+        } finally { 
+            setLoading(false); 
+        }
+    }, [db, clientId, user]);
 
-    useEffect(() => { fetchClientData(); }, [fetchClientData]);
+    useEffect(() => { 
+        fetchClientData(); 
+    }, [fetchClientData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -68,20 +87,24 @@ const ClientForm = ({ db, clientId, onBack }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setStatus('Guardando...');
+        
+        // Guardián: verificar usuario antes de guardar
+        if (!user || !user.uid) {
+            setStatus("Error: Usuario no autenticado.");
+            return;
+        }
+
         try {
             const dataToSave = { ...client };
-            if (dataToSave.tipo === 'persona') {
-                dataToSave.nombreContacto = '';
-                dataToSave.puestoTrabajo = '';
-                dataToSave.sitioWeb = '';
-            }
             dataToSave.fechaActualizacion = serverTimestamp();
 
             if (isEditMode) {
-                await setDoc(doc(db, "clientes", clientId), dataToSave, { merge: true });
+                // Ruta anidada para actualizar
+                await setDoc(doc(db, "usuarios", user.uid, "clientes", clientId), dataToSave, { merge: true });
             } else {
+                // Ruta anidada para crear
                 dataToSave.fechaCreacion = serverTimestamp();
-                await addDoc(collection(db, "clientes"), dataToSave);
+                await addDoc(collection(db, "usuarios", user.uid, "clientes"), dataToSave);
             }
             onBack(true);
         } catch (error) {
@@ -90,17 +113,26 @@ const ClientForm = ({ db, clientId, onBack }) => {
         }
     };
     
-    // NOTA: handleDelete usa window.confirm. Considera reemplazarlo con tu AlertDialog.
     const handleDelete = async () => {
+        // Guardián: verificar usuario antes de eliminar
+        if (!user || !user.uid) {
+            setStatus("Error: Usuario no autenticado.");
+            return;
+        }
+
         if (window.confirm('¿Estás seguro?')) {
             try {
-                await deleteDoc(doc(db, "clientes", clientId));
+                // Ruta anidada para eliminar
+                await deleteDoc(doc(db, "usuarios", user.uid, "clientes", clientId));
                 onBack(false);
-            } catch (error) { setStatus('Error al eliminar.'); }
+            } catch (error) { 
+                setStatus('Error al eliminar.');
+                console.error("Error al eliminar cliente:", error);
+            }
         }
     };
 
-    if (loading) return <p className="text-center text-muted-foreground">Cargando formulario...</p>; // <-- Usar text-muted-foreground
+    if (loading && !isEditMode) return <p className="text-center text-muted-foreground">Cargando formulario...</p>;
 
     return (
         <Card className="w-full max-w-4xl mx-auto">
@@ -118,7 +150,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
                         </div>
                     </div>
                     {isEditMode && (
-                        <div>{/* Espacio para el menú de acciones si lo necesitas */}</div>
+                        <div>{/* Espacio para el botón de eliminar si lo mueves aquí */}</div>
                     )}
                 </div>
             </CardHeader>
@@ -127,7 +159,6 @@ const ClientForm = ({ db, clientId, onBack }) => {
                 <CardContent className="space-y-6">
                     <div>
                         <div className="flex items-center gap-6 mb-4">
-                            {/* --- ¡CAMBIO 1! Labels con color de texto y radio buttons con 'accent-primary' --- */}
                             <label className="flex items-center gap-2 text-sm text-foreground">
                               <input type="radio" name="tipo" value="persona" checked={client.tipo === 'persona'} onChange={handleTypeChange} className="accent-primary" />
                               Persona
@@ -152,7 +183,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
                     </div>
                     <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 pt-4">
                         <div className="space-y-4">
-                            <h2 className="text-lg font-semibold">Dirección</h2>
+                            <h2 className="text-lg font-semibold text-foreground">Dirección</h2>
                             <Input type="text" name="direccion.calle" value={client.direccion.calle} onChange={handleChange} placeholder="Calle..." />
                             <div className="grid sm:grid-cols-2 gap-4">
                                 <Input type="text" name="direccion.ciudad" value={client.direccion.ciudad} onChange={handleChange} placeholder="Ciudad" />
@@ -161,7 +192,7 @@ const ClientForm = ({ db, clientId, onBack }) => {
                             <Input type="text" name="direccion.pais" value={client.direccion.pais} onChange={handleChange} placeholder="País" />
                         </div>
                         <div className="space-y-4">
-                            <h2 className="text-lg font-semibold">Detalles Adicionales</h2>
+                            <h2 className="text-lg font-semibold text-foreground">Detalles Adicionales</h2>
                             {client.tipo === 'compañia' && (
                                 <>
                                     <Input type="text" name="nombreContacto" value={client.nombreContacto} onChange={handleChange} placeholder="Nombre del Contacto" />
@@ -176,7 +207,6 @@ const ClientForm = ({ db, clientId, onBack }) => {
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-4">
-                    {/* --- ¡CAMBIO 2! Mensaje de estado con 'text-muted-foreground' --- */}
                     <div className="text-sm font-medium text-muted-foreground flex-grow">{status}</div>
                     <Button type="button" variant="secondary" onClick={() => onBack(false)}>Cancelar</Button>
                     <Button type="submit" disabled={loading}>{loading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Guardar')}</Button>

@@ -1,6 +1,5 @@
 import React from 'react';
-// --- REMOVE SidebarTrigger import ---
-// import { SidebarTrigger } from '@/ui/sidebar.jsx';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,14 +13,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs.jsx";
 // Import modules
 import ConditionsModule from './condiciones/ConditionsModule.jsx';
 import TaxesModule from './impuestos/TaxesModule.jsx';
-import QuoteStylesModule from './estilos/QuoteStylesModule.jsx'; // Assuming this exists and is theme-aware
+import QuoteStylesModule from './estilos/QuoteStylesModule.jsx';
 
+// ¡CAMBIO! Ya NO recibe 'user' ni 'auth' como props
 const SettingsPage = ({ db, navigate }) => {
+  // ¡NUEVO! Obtener user del Context (aunque no lo usemos directamente aquí,
+  // los módulos hijos lo necesitarán)
+  const { user } = useAuth();
+
+  // ¡NUEVO! Si el usuario no está autenticado, mostrar mensaje
+  if (!user || !user.uid) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <p>Cargando configuración...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       {/* --- Page Header with Breadcrumb --- */}
-      {/* --- REMOVE SidebarTrigger and adjust structure --- */}
-      {/* Breadcrumb now sits directly here, mb-8 gives it space */}
       <div className="mb-8">
         <Breadcrumb>
           <BreadcrumbList>
@@ -38,10 +49,8 @@ const SettingsPage = ({ db, navigate }) => {
         </Breadcrumb>
       </div>
 
-      {/* Heading uses text-foreground (OK) */}
       <h1 className="text-2xl font-bold mb-8 text-foreground">Gestión de Parámetros</h1>
 
-      {/* Tabs use UI components (OK) */}
       <Tabs defaultValue="condiciones" className="w-full">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="condiciones">Condiciones de Pago</TabsTrigger>
@@ -50,17 +59,14 @@ const SettingsPage = ({ db, navigate }) => {
         </TabsList>
 
         <TabsContent value="condiciones" className="mt-6">
-          {/* ConditionsModule uses refactored children (OK) */}
           <ConditionsModule db={db} />
         </TabsContent>
 
         <TabsContent value="impuestos" className="mt-6">
-          {/* TaxesModule uses refactored children (OK) */}
           <TaxesModule db={db} />
         </TabsContent>
 
         <TabsContent value="estilos" className="mt-6">
-          {/* QuoteStylesModule was refactored (OK) */}
           <QuoteStylesModule db={db} />
         </TabsContent>
       </Tabs>

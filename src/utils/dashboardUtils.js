@@ -1,68 +1,102 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
-// format, subMonths, y es ya no son necesarios para getDashboardStats
-// import { format, subMonths } from 'date-fns';
-// import { es } from 'date-fns/locale';
 
 /**
- * Calcula las métricas principales (KPIs) globales para el dashboard.
+ * Calcula las métricas principales (KPIs) para el dashboard DEL USUARIO.
  * @param {Firestore} db - La instancia de la base de datos de Firestore.
+ * @param {string} userId - El ID del usuario autenticado (user.uid).
  */
-export async function getDashboardStats(db) {
-  // --- Fechas eliminadas ---
-  // const now = new Date();
-  // const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  // const startOfMonthTimestamp = Timestamp.fromDate(startOfMonth);
+export async function getDashboardStats(db, userId) {
+  // ¡NUEVO! Validar que userId esté presente
+  if (!userId) {
+    console.error("Error: userId es requerido para obtener las estadísticas del dashboard.");
+    return {
+      totalAprobado: 0,
+      cotizacionesCreadas: 0,
+      tasaAprobacion: 0,
+      nuevosClientes: 0,
+    };
+  }
 
-  // --- Consultas a Firestore (Ahora globales, sin filtro de fecha) ---
-  const quotesQuery = query(collection(db, "cotizaciones"));
-  const clientsQuery = query(collection(db, "clientes"));
+  // ¡CAMBIO! Rutas anidadas con userId
+  const quotesQuery = query(collection(db, "usuarios", userId, "cotizaciones"));
+  const clientsQuery = query(collection(db, "usuarios", userId, "clientes"));
 
-  const [quotesSnapshot, clientsSnapshot] = await Promise.all([
-    getDocs(quotesQuery),
-    getDocs(clientsQuery)
-  ]);
+  try {
+    const [quotesSnapshot, clientsSnapshot] = await Promise.all([
+      getDocs(quotesQuery),
+      getDocs(clientsQuery)
+    ]);
 
-  // --- Procesamiento de los datos (Ahora "allQuotes" en lugar de "quotesThisMonth") ---
-  const allQuotes = quotesSnapshot.docs.map(doc => doc.data());
+    const allQuotes = quotesSnapshot.docs.map(doc => doc.data());
 
-  const totalAprobado = allQuotes
-    .filter(q => q.estado === 'Aprobada')
-    .reduce((sum, q) => sum + q.total, 0);
+    const totalAprobado = allQuotes
+      .filter(q => q.estado === 'Aprobada')
+      .reduce((sum, q) => sum + q.total, 0);
 
-  const cotizacionesCreadas = allQuotes.length;
-  // Ajustamos las definiciones para que sean globales
-  const cotizacionesEnviadas = allQuotes.filter(q => q.estado === 'Enviada' || q.estado === 'Aprobada' || q.estado === 'Rechazada').length;
-  const cotizacionesAprobadas = allQuotes.filter(q => q.estado === 'Aprobada').length;
+    const cotizacionesCreadas = allQuotes.length;
+    const cotizacionesEnviadas = allQuotes.filter(q => q.estado === 'Enviada' || q.estado === 'Aprobada' || q.estado === 'Rechazada').length;
+    const cotizacionesAprobadas = allQuotes.filter(q => q.estado === 'Aprobada').length;
 
-  const tasaAprobacion = cotizacionesEnviadas > 0 ? (cotizacionesAprobadas / cotizacionesEnviadas) * 100 : 0;
+    const tasaAprobacion = cotizacionesEnviadas > 0 ? (cotizacionesAprobadas / cotizacionesEnviadas) * 100 : 0;
 
-  // nuevosClientes ahora contará TODOS los clientes
-  const nuevosClientes = clientsSnapshot.size;
+    const nuevosClientes = clientsSnapshot.size;
 
-  return {
-    totalAprobado,
-    cotizacionesCreadas,
-    tasaAprobacion,
-    nuevosClientes,
-  };
+    return {
+      totalAprobado,
+      cotizacionesCreadas,
+      tasaAprobacion,
+      nuevosClientes,
+    };
+  } catch (error) {
+    console.error("Error al calcular las estadísticas del dashboard:", error);
+    return {
+      totalAprobado: 0,
+      cotizacionesCreadas: 0,
+      tasaAprobacion: 0,
+      nuevosClientes: 0,
+    };
+  }
 }
 
 /**
- * Obtiene las 5 cotizaciones más recientes. (Sin cambios, ya era global)
+ * Obtiene las 5 cotizaciones más recientes DEL USUARIO.
  * @param {Firestore} db - La instancia de la base de datos de Firestore.
+ * @param {string} userId - El ID del usuario autenticado (user.uid).
  */
-export async function getRecentQuotes(db) {
-  const q = query(collection(db, "cotizaciones"), orderBy("fechaCreacion", "desc"), limit(5));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+export async function getRecentQuotes(db, userId) {
+  // ¡NUEVO! Validar que userId esté presente
+  if (!userId) {
+    console.error("Error: userId es requerido para obtener las cotizaciones recientes.");
+    return [];
+  }
+
+  try {
+    // ¡CAMBIO! Ruta anidada con userId
+    const q = query(
+      collection(db, "usuarios", userId, "cotizaciones"),
+      orderBy("fechaCreacion", "desc"),
+      limit(5)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error al obtener las cotizaciones recientes:", error);
+    return [];
+  }
 }
 
 /**
- * Agrupa todas las cotizaciones por estado, en el orden del embudo.
+ * Agrupa todas las cotizaciones DEL USUARIO por estado, en el orden del embudo.
  * @param {Firestore} db - La instancia de la base de datos de Firestore.
+ * @param {string} userId - El ID del usuario autenticado (user.uid).
  */
-export async function getQuotesByStatus(db) {
-  // 1. Definimos el orden explícito del embudo
+export async function getQuotesByStatus(db, userId) {
+  // ¡NUEVO! Validar que userId esté presente
+  if (!userId) {
+    console.error("Error: userId es requerido para obtener las cotizaciones por estado.");
+    return [];
+  }
+
   const funnelOrder = [
     'Borrador',
     'Enviada',
@@ -72,29 +106,29 @@ export async function getQuotesByStatus(db) {
     'Vencida',
   ];
 
-  // 2. Usamos un Map para inicializar y preservar el orden
   const statusCounts = new Map(funnelOrder.map(status => [status, 0]));
 
-  // 3. Obtenemos TODAS las cotizaciones
-  const querySnapshot = await getDocs(collection(db, "cotizaciones"));
+  try {
+    // ¡CAMBIO! Ruta anidada con userId
+    const querySnapshot = await getDocs(collection(db, "usuarios", userId, "cotizaciones"));
 
-  // 4. Contamos cada cotización
-  querySnapshot.forEach((doc) => {
-    const quote = doc.data();
-    if (quote.estado && statusCounts.has(quote.estado)) {
-      // Incrementamos el contador en el Map
-      statusCounts.set(quote.estado, statusCounts.get(quote.estado) + 1);
-    }
-  });
+    querySnapshot.forEach((doc) => {
+      const quote = doc.data();
+      if (quote.estado && statusCounts.has(quote.estado)) {
+        statusCounts.set(quote.estado, statusCounts.get(quote.estado) + 1);
+      }
+    });
 
-  // 5. Convertimos el Map al formato de Recharts, filtrando los que tienen 0
-  // El orden se preservará gracias al Map.
-  const dataForChart = Array.from(statusCounts.entries())
-    .map(([name, value]) => ({
-      name: name,
-      value: value,
-    }))
-    .filter(item => item.value > 0); // Opcional: puedes quitar este filtro si quieres ver estados con 0
+    const dataForChart = Array.from(statusCounts.entries())
+      .map(([name, value]) => ({
+        name: name,
+        value: value,
+      }))
+      .filter(item => item.value > 0);
 
-  return dataForChart;
+    return dataForChart;
+  } catch (error) {
+    console.error("Error al obtener las cotizaciones por estado:", error);
+    return [];
+  }
 }

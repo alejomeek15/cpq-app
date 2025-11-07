@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import { doc, deleteDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import ConditionsList from './ConditionsList.jsx';
 import ConditionForm from './ConditionForm.jsx';
 import AlertDialog from '@/componentes/comunes/AlertDialog.jsx';
 import Notification from '@/componentes/comunes/Notification.jsx';
 
+// ¡CAMBIO! Ya NO recibe 'user' como prop
 const ConditionsModule = ({ db }) => {
+  // ¡NUEVO! Obtener user del Context
+  const { user } = useAuth();
+
   const [view, setView] = useState('list');
   const [currentItem, setCurrentItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [conditions, setConditions] = useState([]);
   const [notification, setNotification] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0); // <-- 1. AÑADIMOS EL ESTADO DE REFRESCO
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleAddNew = () => {
     setCurrentItem(null);
@@ -29,20 +34,41 @@ const ConditionsModule = ({ db }) => {
     setDialogOpen(true);
   };
 
+  // ¡CAMBIO! confirmDeletion ahora usa la ruta anidada
   const confirmDeletion = async () => {
+    // ¡NUEVO! Validar que el usuario esté autenticado
+    if (!user || !user.uid) {
+      setNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Error: Usuario no autenticado.'
+      });
+      setDialogOpen(false);
+      return;
+    }
+
     if (itemToDelete) {
-      await deleteDoc(doc(db, "condicionesPago", itemToDelete));
-      setItemToDelete(null);
-      // 2. ACTUALIZAMOS LA LLAVE PARA FORZAR EL REFRESCO EN EL HIJO
-      setRefreshKey(prevKey => prevKey + 1); 
-      showListView('Condición de pago eliminada correctamente.');
+      try {
+        // ¡CAMBIO! Ruta anidada con user.uid
+        await deleteDoc(doc(db, "usuarios", user.uid, "condicionesPago", itemToDelete));
+        setItemToDelete(null);
+        setRefreshKey(prevKey => prevKey + 1);
+        showListView('Condición de pago eliminada correctamente.');
+      } catch (error) {
+        console.error("Error al eliminar la condición:", error);
+        setNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Error al eliminar la condición de pago.'
+        });
+      }
     }
     setDialogOpen(false);
   };
 
   const showListView = (message = null) => {
     setCurrentItem(null);
-    setView('list'); // Ya no necesitamos el truco de 'list-refresh'
+    setView('list');
 
     if (message) {
       setNotification({
@@ -64,7 +90,7 @@ const ConditionsModule = ({ db }) => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           setConditions={setConditions}
-          key={refreshKey} // <-- 3. USAMOS LA LLAVE PARA FORZAR EL RE-RENDERIZADO
+          key={refreshKey}
         />
       ) : (
         <ConditionForm

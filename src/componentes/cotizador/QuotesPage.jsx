@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import QuoteList from './QuoteList';
 import QuoteForm from './QuoteForm';
 import Notification from '../comunes/Notification.jsx';
@@ -11,27 +12,34 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/ui/breadcrumb.jsx';
-// (SidebarTrigger ya no se importa aquí)
 
-// --- ¡CAMBIO 1! Aceptar nuevas props ---
+// ¡CAMBIO! Ya NO recibe 'user' ni 'auth' como props
 const QuotesPage = ({ db, navigate, initialQuoteId, onClearTargetQuote }) => {
+    // ¡NUEVO! Obtener user del Context
+    const { user } = useAuth();
     
-    // --- ¡CAMBIO 2! Estado inicial inteligente ---
-    // Si recibimos un initialQuoteId, empezamos en la vista 'form'
     const [view, setView] = useState(initialQuoteId ? 'form' : 'list');
-    // Si recibimos un initialQuoteId, lo usamos como el ID actual
     const [currentQuoteId, setCurrentQuoteId] = useState(initialQuoteId || null);
     
     const [notification, setNotification] = useState(null);
     const [clients, setClients] = useState([]);
     const [loadingClients, setLoadingClients] = useState(true);
 
-    // useEffect para cargar clientes (sin cambios)
+    // ¡CAMBIO! useEffect para cargar clientes DEL USUARIO
     useEffect(() => {
         const fetchClients = async () => {
+            // ¡NUEVO! Validar que el usuario esté autenticado
+            if (!user || !user.uid) {
+                setLoadingClients(false);
+                return;
+            }
+
             setLoadingClients(true);
             try {
-                const querySnapshot = await getDocs(collection(db, "clientes"));
+                // ¡CAMBIO! Ruta anidada con user.uid
+                const querySnapshot = await getDocs(
+                    collection(db, "usuarios", user.uid, "clientes")
+                );
                 const clientsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setClients(clientsData);
             } catch (error) {
@@ -46,19 +54,14 @@ const QuotesPage = ({ db, navigate, initialQuoteId, onClearTargetQuote }) => {
             }
         };
         fetchClients();
-    }, [db]);
+    }, [db, user]); // ¡CAMBIO! Añadir 'user' a las dependencias
 
-    // --- ¡CAMBIO 3! useEffect para limpiar el ID en App.jsx ---
     useEffect(() => {
-        // Si cargamos esta página con un ID específico,
-        // le decimos a App.jsx que "ya lo usamos".
         if (initialQuoteId) {
             onClearTargetQuote();
         }
-        // Lo ejecutamos solo si las props (que vienen de App.jsx) cambian
     }, [initialQuoteId, onClearTargetQuote]);
 
-    // showListView (sin cambios)
     const showListView = (message = null) => {
         setView('list');
         setCurrentQuoteId(null);
@@ -67,13 +70,11 @@ const QuotesPage = ({ db, navigate, initialQuoteId, onClearTargetQuote }) => {
         }
     };
 
-    // showFormView (sin cambios)
     const showFormView = (quoteId = null) => {
         setCurrentQuoteId(quoteId);
         setView('form');
     };
 
-    // renderBreadcrumb (sin cambios, ya reacciona a 'view' y 'currentQuoteId')
     const renderBreadcrumb = () => (
       <Breadcrumb>
         <BreadcrumbList>
@@ -97,8 +98,7 @@ const QuotesPage = ({ db, navigate, initialQuoteId, onClearTargetQuote }) => {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {/* Esto funcionará automáticamente gracias al estado inicial */
-                  currentQuoteId ? 'Editar Cotización' : 'Nueva Cotización'}
+                  {currentQuoteId ? 'Editar Cotización' : 'Nueva Cotización'}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </>
@@ -112,7 +112,6 @@ const QuotesPage = ({ db, navigate, initialQuoteId, onClearTargetQuote }) => {
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
             
             <div className="mb-8">
-              {/* SidebarTrigger ya no está aquí (está en App.jsx) */}
               {renderBreadcrumb()}
             </div>
             

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp, query, where } from 'firebase/firestore';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import { pdf } from '@react-pdf/renderer';
 import QuotePDF from './QuotePDF.jsx';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
@@ -18,7 +19,7 @@ import {
 import { Trash2, AlertCircle, X, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { DatePicker } from '@/ui/DatePicker.jsx';
 
-// --- Sub-componente: NotificationModal ---
+// --- Sub-componente: NotificationModal (sin cambios) ---
 const NotificationModal = ({ message, onClose }) => (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[70]">
         <div className="bg-card border rounded-2xl p-8 max-w-sm w-full text-center shadow-lg animate-fade-in-up text-card-foreground">
@@ -29,7 +30,7 @@ const NotificationModal = ({ message, onClose }) => (
     </div>
 );
 
-// --- Sub-componente: ProductCatalogModal ---
+// --- Sub-componente: ProductCatalogModal (sin cambios) ---
 const ProductCatalogModal = ({ products, onAddToCart, onClose, initialCart }) => {
   const [cart, setCart] = useState(initialCart);
   const handleQuantityChange = (productId, quantity) => {
@@ -74,7 +75,7 @@ const ProductCatalogModal = ({ products, onAddToCart, onClose, initialCart }) =>
   );
 };
 
-// --- Sub-componente: InlineProductSearch ---
+// --- Sub-componente: InlineProductSearch (sin cambios) ---
 const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew, index }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -142,7 +143,7 @@ const InlineProductSearch = ({ products, onProductSelect, onCancel, onCreateNew,
   );
 };
 
-// --- Sub-componente: DownloadPDFButton ---
+// --- Sub-componente: DownloadPDFButton (sin cambios) ---
 const DownloadPDFButton = ({ quoteId, loading, clients, quote, subtotal, tax, total, quoteStyleName }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const styleToUse = quoteStyleName || 'Bubble';
@@ -179,6 +180,9 @@ const DownloadPDFButton = ({ quoteId, loading, clients, quote, subtotal, tax, to
 
 // --- Componente Principal: QuoteForm ---
 const QuoteForm = ({ db, quoteId, onBack }) => {
+  // ¡NUEVO! Obtener user del Context
+  const { user } = useAuth();
+
   // --- Estados ---
   const [quote, setQuote] = useState({ numero: '', estado: 'Borrador', clienteId: '', vencimiento: null, condicionesPago: '', lineas: [], });
   const [clients, setClients] = useState([]);
@@ -195,22 +199,34 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
   // --- Funciones de Carga ---
   const fetchProducts = useCallback(async () => {
-    const productsSnap = await getDocs(collection(db, "productos"));
+    // ¡CAMBIO! Ruta anidada con user.uid
+    if (!user || !user.uid) return;
+    const productsSnap = await getDocs(collection(db, "usuarios", user.uid, "productos"));
     setProducts(productsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-  }, [db]);
+  }, [db, user]);
 
   useEffect(() => {
     async function loadInitialData() {
+      // ¡NUEVO! Validar que el usuario esté autenticado
+      if (!user || !user.uid) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setLoadingConfig(true);
       setCanSave(true);
       setErrorNotification(null);
       try {
-        const configRef = doc(db, 'configuracion', 'global');
-        const paymentTermsQuery = query(collection(db, "condicionesPago"), where("activo", "==", true));
+        // ¡CAMBIO! Rutas anidadas con user.uid
+        const configRef = doc(db, 'usuarios', user.uid, 'configuracion', 'global');
+        const paymentTermsQuery = query(
+          collection(db, "usuarios", user.uid, "condicionesPago"), 
+          where("activo", "==", true)
+        );
 
         const [clientsSnap, termsSnap, configSnap] = await Promise.all([
-          getDocs(collection(db, "clientes")),
+          getDocs(collection(db, "usuarios", user.uid, "clientes")),
           getDocs(paymentTermsQuery),
           getDoc(configRef)
         ]);
@@ -230,7 +246,8 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
         await fetchProducts();
 
         if (quoteId) {
-          const quoteRef = doc(db, "cotizaciones", quoteId);
+          // ¡CAMBIO! Ruta anidada con user.uid
+          const quoteRef = doc(db, "usuarios", user.uid, "cotizaciones", quoteId);
           const quoteSnap = await getDoc(quoteRef);
           if (quoteSnap.exists()) {
             const data = quoteSnap.data();
@@ -245,7 +262,9 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
              setCanSave(false);
           }
         } else {
-          const formattedNumber = await obtenerSiguienteNumeroCotizacion(db);
+          // ¡CAMBIO! Pasar user.uid a obtenerSiguienteNumeroCotizacion
+          
+          const formattedNumber = await obtenerSiguienteNumeroCotizacion(db, user.uid);
           if (formattedNumber) {
             setQuote(prev => ({ ...prev, numero: formattedNumber }));
             setCanSave(true);
@@ -265,7 +284,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
       }
     }
     loadInitialData();
-  }, [db, quoteId, fetchProducts]);
+  }, [db, quoteId, fetchProducts, user]);
 
   const handleOpenProductForm = (productData) => {
     setProductToEdit(productData);
@@ -306,6 +325,12 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
   // --- Función de Guardado ---
   const handleSave = async () => {
+    // ¡NUEVO! Validar que el usuario esté autenticado
+    if (!user || !user.uid) {
+      setErrorNotification({ message: "Error: Usuario no autenticado." });
+      return;
+    }
+
     if (!canSave || !quote.numero || quote.numero === 'ERROR' || !quote.clienteId) {
       setErrorNotification({ message: !quote.clienteId ? "Selecciona un cliente." : "No se puede guardar la cotización." });
       return;
@@ -333,11 +358,13 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     };
     try {
       if (quoteId) {
-        const quoteRef = doc(db, "cotizaciones", quoteId);
+        // ¡CAMBIO! Ruta anidada con user.uid
+        const quoteRef = doc(db, "usuarios", user.uid, "cotizaciones", quoteId);
         await setDoc(quoteRef, quoteData, { merge: true });
       } else {
+        // ¡CAMBIO! Ruta anidada con user.uid
         quoteData.fechaCreacion = serverTimestamp();
-        await addDoc(collection(db, "cotizaciones"), quoteData);
+        await addDoc(collection(db, "usuarios", user.uid, "cotizaciones"), quoteData);
       }
       onBack(true);
     } catch (error) {
@@ -347,7 +374,7 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     }
   };
 
-  // --- Función de Cálculo ---
+  // --- Función de Cálculo (sin cambios) ---
   const calculateTotals = () => {
     const lineasValidas = Array.isArray(quote.lineas) ? quote.lineas : [];
     const subtotal = lineasValidas.reduce((acc, line) => acc + ((parseFloat(line.quantity) || 0) * (parseFloat(line.price) || 0)), 0);
@@ -370,14 +397,13 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
 
   if ((loading || loadingConfig) && (!quote.numero || quote.numero === 'ERROR') ) return <p className="text-center text-muted-foreground">Cargando cotización...</p>;
 
-  // --- RENDERIZADO ---
+  // --- RENDERIZADO (sin cambios) ---
   return (
       <div className="space-y-8">
           {errorNotification && <NotificationModal message={errorNotification.message} onClose={() => setErrorNotification(null)} />}
           {isCatalogOpen && <ProductCatalogModal products={products} onClose={() => setIsCatalogOpen(false)} onAddToCart={handleAddToCart} initialCart={quote.lineas.reduce((acc, line) => { if(line.productId) acc[line.productId] = line.quantity; return acc; }, {})} />}
           {isProductFormOpen && <ProductoForm db={db} product={productToEdit} onClose={handleCloseProductForm} />}
 
-          {/* --- Cabecera --- */}
           <div>
               <div className="flex justify-between items-center">
                   <input type="text" name="numero" value={quote.numero} readOnly className={`text-4xl font-bold bg-transparent border-none focus:ring-0 p-0 h-auto ${quote.numero === 'ERROR' ? 'text-destructive' : 'text-foreground'}`} />
@@ -400,12 +426,10 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
               </div>
           </div>
 
-          {/* --- Botones de Estado --- */}
           <div className="flex items-center border rounded-lg p-1 max-w-max flex-wrap">
               {statusOptions.map(status => ( <Button key={status} variant={quote.estado === status ? "default" : "ghost"} size="sm" onClick={() => setQuote(prev => ({ ...prev, estado: status }))}> {status} </Button> ))}
           </div>
 
-          {/* --- Card Información Principal --- */}
           <Card className="bg-transparent border-none">
               <CardHeader className="p-0 mb-4"><CardTitle>Información Principal</CardTitle></CardHeader>
               <CardContent className="p-6 bg-card rounded-lg border">
@@ -432,7 +456,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                </CardContent>
           </Card>
 
-          {/* --- Tabla Líneas de Cotización --- */}
           <div>
                 <h2 className="text-xl font-bold mb-4 text-foreground">Líneas de Cotización</h2>
                 <div className="overflow-x-auto bg-card rounded-lg border shadow">
@@ -477,7 +500,6 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                 </div>
             </div>
 
-          {/* --- Totales --- */}
           <div className="flex justify-end">
                 <Card className="w-full max-w-sm bg-transparent border-none">
                     <CardContent className="p-6 bg-card rounded-lg border space-y-4 text-card-foreground">

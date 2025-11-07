@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -6,60 +6,180 @@ import {
   YAxis, 
   Tooltip, 
   ResponsiveContainer, 
-  LabelList, 
+  Cell,
   CartesianGrid 
 } from 'recharts';
 import { useTheme } from '@/ui/theme-provider';
 
-// --- ¡CAMBIO AQUÍ! Función de color actualizada ---
-// Asigna un color único a cada estado usando las variables del tema
-const getFillColor = (name) => {
-  switch (name) {
-    // Colores de estado fijos para éxito y fallo
-    case 'Aprobada':
-      return 'hsl(142 76% 36%)'; // Verde
-    case 'Rechazada':
-      return 'hsl(var(--destructive))'; // Rojo
-    
-    // Colores de gráfico del tema para el embudo
-    case 'En negociación':
-      return 'hsl(var(--chart-1))'; // ej. Púrpura/Azul
-    case 'Enviada':
-      return 'hsl(var(--chart-2))'; // ej. Cian
-    case 'Borrador':
-      return 'hsl(var(--chart-3))'; // ej. Azul claro
-    case 'Vencida':
-      return 'hsl(var(--chart-5))'; // ej. Naranja
-      
-    default:
-      return 'hsl(var(--muted))'; // Gris como fallback
+// Configuración de colores y iconos por estado
+const stateConfig = {
+  'Borrador': {
+    color: 'hsl(var(--chart-3))', // Azul claro
+    icon: '📝',
+    gradient: ['hsl(var(--chart-3))', 'hsl(217 91% 70%)']
+  },
+  'Enviada': {
+    color: 'hsl(var(--chart-2))', // Cian
+    icon: '📤',
+    gradient: ['hsl(var(--chart-2))', 'hsl(199 89% 60%)']
+  },
+  'En negociación': {
+    color: 'hsl(var(--chart-1))', // Púrpura
+    icon: '💬',
+    gradient: ['hsl(var(--chart-1))', 'hsl(262 83% 65%)']
+  },
+  'Aprobada': {
+    color: 'hsl(142 76% 36%)', // Verde
+    icon: '✅',
+    gradient: ['hsl(142 76% 36%)', 'hsl(142 76% 50%)']
+  },
+  'Rechazada': {
+    color: 'hsl(var(--destructive))', // Rojo
+    icon: '❌',
+    gradient: ['hsl(var(--destructive))', 'hsl(0 84% 65%)']
+  },
+  'Vencida': {
+    color: 'hsl(var(--chart-5))', // Naranja
+    icon: '⏰',
+    gradient: ['hsl(var(--chart-5))', 'hsl(25 95% 60%)']
   }
+};
+
+// Tooltip personalizado mejorado
+const CustomTooltip = ({ active, payload }) => {
+  if (!active || !payload || !payload.length) return null;
+  
+  const data = payload[0].payload;
+  const config = stateConfig[data.name] || {};
+  
+  return (
+    <div className="bg-popover border border-border rounded-lg shadow-lg p-3 min-w-[180px]">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xl">{config.icon}</span>
+        <span className="font-semibold text-popover-foreground">{data.name}</span>
+      </div>
+      <div className="space-y-1 text-sm">
+        <div className="flex justify-between gap-4">
+          <span className="text-muted-foreground">Cantidad:</span>
+          <span className="font-bold text-popover-foreground">{data.value}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-muted-foreground">Porcentaje:</span>
+          <span className="font-bold" style={{ color: config.color }}>
+            {data.percentage}%
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Label personalizado que muestra valor y porcentaje
+const CustomLabel = (props) => {
+  const { x, y, width, height, value, name, percentage } = props;
+  
+  if (!name || value === undefined) return null;
+  
+  const config = stateConfig[name] || {};
+  
+  return (
+    <g>
+      {/* Valor numérico */}
+      <text
+        x={x + width + 12}
+        y={y + height / 2}
+        fill="hsl(var(--foreground))"
+        fontSize={15}
+        fontWeight="700"
+        dominantBaseline="middle"
+      >
+        {value}
+      </text>
+      {/* Porcentaje */}
+      <text
+        x={x + width + 42}
+        y={y + height / 2}
+        fill="hsl(var(--muted-foreground))"
+        fontSize={13}
+        fontWeight="500"
+        dominantBaseline="middle"
+      >
+        ({percentage}%)
+      </text>
+    </g>
+  );
+};
+
+// Label del eje Y con icono y nombre
+const CustomYAxisTick = ({ x, y, payload }) => {
+  const config = stateConfig[payload.value] || {};
+  
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={-8}
+        y={0}
+        dy={4}
+        textAnchor="end"
+        fill="hsl(var(--foreground))"
+        fontSize={13}
+        fontWeight="500"
+      >
+        {config.icon} {payload.value}
+      </text>
+    </g>
+  );
 };
 
 export const QuotesFunnelChart = ({ data }) => {
   const { theme } = useTheme();
 
+  // Procesar y ordenar datos
+  const chartData = useMemo(() => {
+    // Calcular total
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    
+    // Agregar porcentaje y ordenar de mayor a menor
+    return data
+      .map(item => ({
+        ...item,
+        percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : 0,
+        fill: stateConfig[item.name]?.color || 'hsl(var(--muted))'
+      }))
+      .sort((a, b) => b.value - a.value); // Ordenar descendente
+  }, [data]);
+
   const tickColor = theme === 'dark' 
     ? 'hsl(var(--muted-foreground))' 
     : 'hsl(var(--foreground))';
-  
-  // Mapea los datos para añadir el color de relleno
-  const chartData = data.map((entry) => ({
-    ...entry,
-    fill: getFillColor(entry.name),
-  }));
+
+  // Calcular el valor máximo y generar ticks apropiados
+  const maxValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.value)) : 0;
+  const tickCount = Math.min(maxValue + 1, 10); // Máximo 10 ticks
+  const xAxisTicks = Array.from({ length: tickCount }, (_, i) => i);
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={350}>
       <BarChart
         data={chartData}
         layout="vertical"
-        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        margin={{ top: 10, right: 100, left: 10, bottom: 10 }}
       >
+        <defs>
+          {/* Definir gradientes para cada estado */}
+          {Object.entries(stateConfig).map(([key, config]) => (
+            <linearGradient key={key} id={`gradient-${key}`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor={config.gradient[0]} stopOpacity={0.8} />
+              <stop offset="100%" stopColor={config.gradient[1]} stopOpacity={1} />
+            </linearGradient>
+          ))}
+        </defs>
+        
         <CartesianGrid 
           strokeDasharray="3 3" 
           stroke="hsl(var(--border))" 
           horizontal={false}
+          strokeOpacity={0.3}
         />
         
         <XAxis
@@ -69,43 +189,37 @@ export const QuotesFunnelChart = ({ data }) => {
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
+          tick={{ fill: tickColor }}
+          domain={[0, maxValue]}
+          ticks={xAxisTicks}
         />
         
         <YAxis
           type="category"
           dataKey="name"
           stroke={tickColor}
-          fontSize={12}
+          fontSize={13}
           tickLine={false}
           axisLine={false}
-          tickMargin={10}
-          width={110}
+          tickMargin={5}
+          width={160}
+          tick={<CustomYAxisTick />}
         />
         
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(var(--popover))',
-            borderColor: 'hsl(var(--border))',
-            color: 'hsl(var(--popover-foreground))',
-            borderRadius: 'var(--radius)',
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-          }}
-          labelStyle={{ color: 'hsl(var(--foreground))' }}
-          cursor={{ fill: 'hsl(var(--muted))' }}
-        />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }} />
         
         <Bar
           dataKey="value"
-          radius={[0, 4, 4, 0]}
+          radius={[0, 8, 8, 0]}
+          maxBarSize={45}
+          label={<CustomLabel />}
         >
-          <LabelList
-            dataKey="value"
-            position="right"
-            offset={8}
-            fill={tickColor}
-            fontSize={12}
-            fontWeight="bold"
-          />
+          {chartData.map((entry, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={`url(#gradient-${entry.name})`}
+            />
+          ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

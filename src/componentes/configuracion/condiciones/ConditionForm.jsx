@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, doc, addDoc, updateDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
 import {
@@ -11,11 +12,15 @@ import {
   CardTitle,
 } from "@/ui/card.jsx";
 
+// ¡CAMBIO! Ya NO recibe 'user' como prop
 const ConditionForm = ({ onBack, db, condition, itemCount }) => {
+  // ¡NUEVO! Obtener user del Context
+  const { user } = useAuth();
+
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // useEffect to fill form (no changes needed)
   useEffect(() => {
     if (condition) {
       setName(condition.nombre);
@@ -24,37 +29,45 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
     }
   }, [condition]);
 
-  // handleSubmit logic (no changes needed)
+  // ¡CAMBIO! handleSubmit ahora usa la ruta anidada
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name) return;
+    
+    // ¡NUEVO! Validar que el usuario esté autenticado
+    if (!user || !user.uid) {
+      setError('Error: Usuario no autenticado.');
+      return;
+    }
+
+    if (!name) {
+      setError('El nombre de la condición es requerido.');
+      return;
+    }
 
     setLoading(true);
+    setError(null);
     try {
       if (condition) {
-        // Edit existing condition
-        const docRef = doc(db, 'condicionesPago', condition.id);
+        // ¡CAMBIO! Ruta anidada para actualizar
+        const docRef = doc(db, 'usuarios', user.uid, 'condicionesPago', condition.id);
         await updateDoc(docRef, { nombre: name });
       } else {
-        // Create new condition
-        const collectionRef = collection(db, 'condicionesPago');
+        // ¡CAMBIO! Ruta anidada para crear
+        const collectionRef = collection(db, 'usuarios', user.uid, 'condicionesPago');
         await addDoc(collectionRef, {
           nombre: name,
           posicion: itemCount,
-          activo: true, // Default to active
+          activo: true,
         });
       }
-      onBack(true); // Signal success
+      onBack(true);
     } catch (error) {
       console.error("Error al guardar la condición:", error);
-      // Consider adding a user-facing error notification here
+      setError('Error al guardar la condición.');
       setLoading(false);
     }
-    // No need for finally setLoading(false) if onBack navigates away
   };
 
-  // Base UI components (Card, CardHeader, CardTitle, CardDescription)
-  // should already be theme-aware.
   return (
     <Card className="max-w-lg mx-auto">
       <CardHeader>
@@ -64,14 +77,16 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        {/* CardContent should be theme-aware */}
         <CardContent>
+          {error && (
+            <div className="p-3 mb-4 bg-destructive/10 text-destructive rounded-lg text-sm">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
-            {/* --- FIX: Add text-foreground to the label --- */}
             <label htmlFor="name" className="text-sm font-medium leading-none text-foreground">
               Nombre
             </label>
-            {/* Input should be theme-aware */}
             <Input
               id="name"
               type="text"
@@ -79,13 +94,17 @@ const ConditionForm = ({ onBack, db, condition, itemCount }) => {
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: 50% al inicio, 50% a la entrega"
               required
+              disabled={loading}
             />
           </div>
         </CardContent>
-        {/* CardFooter should be theme-aware */}
         <CardFooter className="flex justify-end gap-2">
-          {/* Buttons use theme-aware variants */}
-          <Button type="button" variant="ghost" onClick={() => onBack()}>
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={() => onBack()}
+            disabled={loading}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={loading}>

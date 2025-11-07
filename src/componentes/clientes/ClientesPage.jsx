@@ -11,9 +11,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/ui/breadcrumb.jsx";
-// --- REMOVE SidebarTrigger import ---
-// import { SidebarTrigger } from '@/ui/sidebar.jsx';
 
+// ¡CAMBIO! Ya NO recibe 'user' ni 'auth' como props
 const ClientesPage = ({ db, navigate }) => {
     const [view, setView] = useState('list');
     const [currentClientId, setCurrentClientId] = useState(null);
@@ -60,15 +59,30 @@ const ClientesPage = ({ db, navigate }) => {
       </Breadcrumb>
     );
 
+    // ¡CAMBIO! Simplificado - solo pasamos 'db'
     const renderContent = () => {
+        const props = {
+            db,
+            onBack: (saved) => showListView(saved ? 'Cliente guardado correctamente.' : null)
+        };
+
         switch (view) {
             case 'form':
-                return <ClientForm db={db} clientId={currentClientId} onBack={(saved) => showListView(saved ? 'Cliente guardado correctamente.' : null)} />;
+                return <ClientForm 
+                          {...props} 
+                          clientId={currentClientId} 
+                       />;
             case 'import':
-                return <ClientImport db={db} onBack={showListView} />;
+                return <ClientImport {...props} />;
             case 'list':
             default:
-                return <ClientList db={db} onEditClient={showFormView} onAddNewClient={() => showFormView(null)} onImportClients={showImportView} setNotification={setNotification} />;
+                return <ClientList 
+                          db={db}
+                          onEditClient={showFormView} 
+                          onAddNewClient={() => showFormView(null)} 
+                          onImportClients={showImportView} 
+                          setNotification={setNotification} 
+                       />;
         }
     };
 
@@ -76,8 +90,6 @@ const ClientesPage = ({ db, navigate }) => {
         <div className="w-full">
             <Notification notification={notification} onDismiss={() => setNotification(null)} />
 
-            {/* --- REMOVE SidebarTrigger and adjust structure --- */}
-            {/* The Breadcrumb now sits directly here, mb-8 gives it space */}
             <div className="mb-8">
               {renderBreadcrumb()}
             </div>

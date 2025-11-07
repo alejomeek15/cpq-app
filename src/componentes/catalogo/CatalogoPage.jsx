@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
 import ProductList from './ProductList.jsx';
 import ProductTypeSelector from './ProductTypeSelector.jsx';
 import SimpleProductForm from './SimpleProductForm.jsx';
@@ -16,15 +17,18 @@ import {
   DialogContent,
 } from "@/ui/dialog.jsx";
 
+// ¡CAMBIO! Ya NO recibe 'user' ni 'auth' como props
 const CatalogoPage = ({ db, navigate }) => {
-  const [view, setView] = useState('list'); // 'list', 'simple-form'
+  // ¡NUEVO! Obtener user del Context
+  const { user } = useAuth();
+
+  const [view, setView] = useState('list');
   const [isTypeSelectorOpen, setIsTypeSelectorOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const handleProductClick = (product) => {
     console.log("Selected Product:", product);
     setSelectedProduct(product);
-    // Future: setView('details');
   };
 
   const handleAddNewProduct = () => {
@@ -36,7 +40,6 @@ const CatalogoPage = ({ db, navigate }) => {
     if (type === 'simple') {
       setView('simple-form');
     }
-    // Future: handle 'composite' and 'kit'
   };
 
   const handleBackToList = () => {
@@ -44,18 +47,25 @@ const CatalogoPage = ({ db, navigate }) => {
     setSelectedProduct(null);
   };
 
+  // ¡NUEVO! Validar que el usuario esté autenticado
+  if (!user || !user.uid) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <p>Cargando catálogo...</p>
+      </div>
+    );
+  }
+
   const renderContent = () => {
     switch (view) {
       case 'simple-form':
-        // --- ¡CAMBIO CLAVE AQUÍ! ---
-        // Añadimos la prop db={db} al componente del formulario.
         return <SimpleProductForm db={db} onBack={handleBackToList} onSave={handleBackToList} />;
-      
+
       case 'list':
       default:
-        return <ProductList 
-          db={db} 
-          onProductClick={handleProductClick} 
+        return <ProductList
+          db={db}
+          onProductClick={handleProductClick}
           onAddNewProduct={handleAddNewProduct}
         />;
     }
@@ -68,15 +78,15 @@ const CatalogoPage = ({ db, navigate }) => {
         <div className="mt-4">
           <Breadcrumb>
             <BreadcrumbList>
-                <BreadcrumbItem>
-                    <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
-                        Dashboard
-                    </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                    <BreadcrumbPage>Catálogo</BreadcrumbPage>
-                </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
+                  Dashboard
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Catálogo</BreadcrumbPage>
+              </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>

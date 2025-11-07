@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Datos - CPQ App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .btn { transition: all 0.3s ease; }
+        .data-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .data-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-5xl">
+        
+        <!-- Header con configuración -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl p-6 md:p-8 mb-6 text-white">
+            <h1 class="text-3xl sm:text-4xl font-bold mb-4">🚀 Generador de Datos Ficticios</h1>
+            <p class="text-blue-100 mb-4">CPQ App - Multi-Tenant</p>
+            
+            <!-- Configuración de Usuario -->
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <h3 class="font-semibold mb-3 text-lg">⚙️ Configuración</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">User ID (UID)</label>
+                        <input type="text" id="user-id" 
+                               value="SkV1gXKNqTR3IDFm8wwuX8kGciZ2"
+                               class="w-full px-3 py-2 rounded-md text-gray-800 font-mono text-sm"
+                               placeholder="UID del usuario">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Email del Usuario</label>
+                        <input type="email" id="user-email" 
+                               value="admin@cepequ.com"
+                               class="w-full px-3 py-2 rounded-md text-gray-800"
+                               placeholder="email@ejemplo.com">
+                    </div>
+                </div>
+                <button id="test-connection-btn" class="mt-3 bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition">
+                    🔌 Probar Conexión
+                </button>
+                <div id="connection-status" class="mt-2 text-sm hidden"></div>
+            </div>
+        </div>
+
+        <!-- Feedback general -->
+        <div id="feedback-message" class="hidden mb-4"></div>
+
+        <!-- Grid de acciones -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            
+            <!-- Clientes -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">👥 Clientes</h2>
+                    <span id="clients-count" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">0</span>
+                </div>
+                <p class="text-gray-600 text-sm mb-4">Genera clientes ficticios con datos realistas</p>
+                <div class="space-y-2">
+                    <button id="generate-client-btn" class="btn w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">
+                        ➕ Generar 1 Cliente
+                    </button>
+                    <button id="generate-10-clients-btn" class="btn w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 text-sm">
+                        ➕➕ Generar 10 Clientes
+                    </button>
+                    <button id="delete-clients-btn" class="btn w-full bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 text-sm">
+                        🗑️ Eliminar Todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Productos -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">📦 Productos</h2>
+                    <span id="products-count" class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">0</span>
+                </div>
+                <p class="text-gray-600 text-sm mb-4">Crea productos de tecnología y más</p>
+                <div class="space-y-2">
+                    <button id="generate-product-btn" class="btn w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">
+                        ➕ Generar 1 Producto
+                    </button>
+                    <button id="generate-10-products-btn" class="btn w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 text-sm">
+                        ➕➕ Generar 10 Productos
+                    </button>
+                    <button id="delete-products-btn" class="btn w-full bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 text-sm">
+                        🗑️ Eliminar Todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cotizaciones -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">📄 Cotizaciones</h2>
+                    <span id="quotes-count" class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">0</span>
+                </div>
+                <p class="text-gray-600 text-sm mb-4">Genera cotizaciones completas</p>
+                <div class="space-y-2">
+                    <button id="generate-quote-btn" class="btn w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700">
+                        ➕ Generar 1 Cotización
+                    </button>
+                    <button id="generate-5-quotes-btn" class="btn w-full bg-purple-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-600 text-sm">
+                        ➕➕ Generar 5 Cotizaciones
+                    </button>
+                    <button id="delete-quotes-btn" class="btn w-full bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 text-sm">
+                        🗑️ Eliminar Todas
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acción de inicializar todo -->
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl shadow-xl p-6 text-white mb-6">
+            <h2 class="text-2xl font-bold mb-2">🎯 Inicialización Completa</h2>
+            <p class="text-emerald-100 mb-4">Crea un conjunto completo de datos de prueba en un solo click</p>
+            <button id="initialize-all-btn" class="bg-white text-emerald-600 font-bold py-3 px-6 rounded-lg hover:bg-emerald-50 transition">
+                ⚡ Crear Dataset Completo (20 clientes + 15 productos + 10 cotizaciones)
+            </button>
+        </div>
+
+        <!-- Lista de datos recientes -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">📊 Últimos Datos Generados</h2>
+            <div id="recent-data" class="space-y-3">
+                <p class="text-gray-500 text-center py-4">Aún no se han generado datos</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, orderBy, limit, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // ============================================
+        // CONFIGURACIÓN DE FIREBASE
+        // ============================================
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkRiI_h6qBdlMrjHIstbxOSpSSA1fl9M4",
+            authDomain: "app-cpq.firebaseapp.com",
+            projectId: "app-cpq",
+            storageBucket: "app-cpq.firebasestorage.app",
+            messagingSenderId: "144495366011",
+            appId: "1:144495366011:web:3e9ebcc37369f25a40f7de"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ============================================
+        // ELEMENTOS DEL DOM
+        // ============================================
+        const userIdInput = document.getElementById('user-id');
+        const userEmailInput = document.getElementById('user-email');
+        const testConnectionBtn = document.getElementById('test-connection-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        const feedbackMessage = document.getElementById('feedback-message');
+        
+        const clientsCount = document.getElementById('clients-count');
+        const productsCount = document.getElementById('products-count');
+        const quotesCount = document.getElementById('quotes-count');
+        
+        const generateClientBtn = document.getElementById('generate-client-btn');
+        const generate10ClientsBtn = document.getElementById('generate-10-clients-btn');
+        const deleteClientsBtn = document.getElementById('delete-clients-btn');
+        
+        const generateProductBtn = document.getElementById('generate-product-btn');
+        const generate10ProductsBtn = document.getElementById('generate-10-products-btn');
+        const deleteProductsBtn = document.getElementById('delete-products-btn');
+        
+        const generateQuoteBtn = document.getElementById('generate-quote-btn');
+        const generate5QuotesBtn = document.getElementById('generate-5-quotes-btn');
+        const deleteQuotesBtn = document.getElementById('delete-quotes-btn');
+        
+        const initializeAllBtn = document.getElementById('initialize-all-btn');
+        const recentData = document.getElementById('recent-data');
+
+        // ============================================
+        // DATOS FICTICIOS
+        // ============================================
+        const nombresPersonas = ['Ana', 'Carlos', 'María', 'Juan', 'Laura', 'Pedro', 'Sofía', 'Diego', 'Valentina', 'Santiago', 'Camila', 'Andrés', 'Isabella', 'Felipe', 'Daniela', 'Miguel', 'Paula', 'Sebastián', 'Gabriela', 'David'];
+        const apellidos = ['García', 'Rodríguez', 'Martínez', 'López', 'González', 'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Flores', 'Rivera', 'Gómez', 'Díaz', 'Cruz', 'Morales', 'Jiménez', 'Hernández', 'Ruiz', 'Mendoza', 'Vargas'];
+        const nombresEmpresas = ['Tech Solutions', 'Digital Systems', 'Innovatek', 'CloudFirst', 'DataPro', 'SmartBiz', 'FutureSoft', 'NextGen Solutions', 'AlphaTech', 'BetaSystems'];
+        const ciudades = [
+            { ciudad: 'Bogotá', departamento: 'Cundinamarca' },
+            { ciudad: 'Medellín', departamento: 'Antioquia' },
+            { ciudad: 'Cali', departamento: 'Valle del Cauca' },
+            { ciudad: 'Barranquilla', departamento: 'Atlántico' },
+            { ciudad: 'Cartagena', departamento: 'Bolívar' },
+            { ciudad: 'Pereira', departamento: 'Risaralda' },
+            { ciudad: 'Manizales', departamento: 'Caldas' },
+            { ciudad: 'Bucaramanga', departamento: 'Santander' }
+        ];
+
+        const productosBase = [
+            { nombre: 'Laptop Dell Inspiron', descripcion: 'Portátil de alto rendimiento para profesionales', precioBase: 1200 },
+            { nombre: 'Mouse Logitech', descripcion: 'Mouse inalámbrico ergonómico', precioBase: 35 },
+            { nombre: 'Teclado Mecánico', descripcion: 'Teclado gaming RGB', precioBase: 85 },
+            { nombre: 'Monitor Samsung 27"', descripcion: 'Monitor Full HD IPS', precioBase: 280 },
+            { nombre: 'Webcam HD', descripcion: 'Cámara web 1080p con micrófono', precioBase: 65 },
+            { nombre: 'Auriculares Bluetooth', descripcion: 'Audífonos inalámbricos con cancelación de ruido', precioBase: 120 },
+            { nombre: 'SSD 1TB', descripcion: 'Disco de estado sólido NVMe', precioBase: 95 },
+            { nombre: 'Silla Ergonómica', descripcion: 'Silla de oficina con soporte lumbar', precioBase: 250 },
+            { nombre: 'Hub USB-C', descripcion: 'Adaptador multipuerto 7 en 1', precioBase: 45 },
+            { nombre: 'Router WiFi 6', descripcion: 'Router de alta velocidad', precioBase: 150 }
+        ];
+
+        const estadosCotizacion = ['Borrador', 'Enviada', 'En negociación', 'Aprobada', 'Rechazada', 'Vencida'];
+        const condicionesPago = ['Pago inmediato', '15 días', '30 días', '45 días', '60 días'];
+
+        // ============================================
+        // FUNCIONES AUXILIARES
+        // ============================================
+        function random(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateSKU() {
+            return 'SKU-' + Math.random().toString(36).substring(2, 11).toUpperCase();
+        }
+
+        function generateNIT() {
+            return randomInt(60000000, 99999999).toString();
+        }
+
+        function generateCedula() {
+            return randomInt(30000000, 99999999).toString();
+        }
+
+        function generatePhone() {
+            return '3' + randomInt(100000000, 999999999).toString();
+        }
+
+        function showFeedback(message, type = 'success') {
+            feedbackMessage.className = `p-4 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            feedbackMessage.textContent = message;
+            feedbackMessage.classList.remove('hidden');
+            setTimeout(() => feedbackMessage.classList.add('hidden'), 5000);
+        }
+
+        function addToRecentData(icon, text, color) {
+            const item = document.createElement('div');
+            item.className = `flex items-center gap-3 p-3 rounded-lg ${color} animate-pulse`;
+            item.innerHTML = `<span class="text-2xl">${icon}</span><span class="font-medium">${text}</span>`;
+            
+            if (recentData.firstChild?.textContent?.includes('Aún no')) {
+                recentData.innerHTML = '';
+            }
+            
+            recentData.insertBefore(item, recentData.firstChild);
+            setTimeout(() => item.classList.remove('animate-pulse'), 1000);
+            
+            // Mantener solo los últimos 10
+            while (recentData.children.length > 10) {
+                recentData.removeChild(recentData.lastChild);
+            }
+        }
+
+        // ============================================
+        // GENERADORES DE DATOS
+        // ============================================
+        function generarCliente() {
+            const tipo = Math.random() > 0.5 ? 'compañia' : 'persona';
+            const ubicacion = random(ciudades);
+            
+            if (tipo === 'persona') {
+                const nombre = random(nombresPersonas);
+                const apellido = random(apellidos);
+                return {
+                    nombre: `${nombre} ${apellido}`,
+                    tipo: 'persona',
+                    identificacionNumero: generateCedula(),
+                    email: `${nombre.toLowerCase()}${randomInt(1, 99)}@email.com`,
+                    telefono: generatePhone(),
+                    direccion: {
+                        calle: `Calle ${randomInt(1, 150)} #${randomInt(1, 50)}-${randomInt(1, 99)}`,
+                        ciudad: ubicacion.ciudad,
+                        departamento: ubicacion.departamento,
+                        pais: 'Colombia'
+                    },
+                    nombreContacto: '',
+                    puestoTrabajo: '',
+                    sitioWeb: '',
+                    fechaCreacion: serverTimestamp(),
+                    fechaActualizacion: serverTimestamp()
+                };
+            } else {
+                const nombreEmpresa = random(nombresEmpresas);
+                const contacto = random(nombresPersonas);
+                const apellidoContacto = random(apellidos);
+                return {
+                    nombre: nombreEmpresa,
+                    tipo: 'compañia',
+                    identificacionNumero: generateNIT(),
+                    email: `contacto@${nombreEmpresa.toLowerCase().replace(/\s/g, '')}.com`,
+                    telefono: generatePhone(),
+                    direccion: {
+                        calle: `Carrera ${randomInt(1, 100)} #${randomInt(1, 50)}-${randomInt(1, 99)}`,
+                        ciudad: ubicacion.ciudad,
+                        departamento: ubicacion.departamento,
+                        pais: 'Colombia'
+                    },
+                    nombreContacto: `${contacto} ${apellidoContacto}`,
+                    puestoTrabajo: random(['Gerente', 'Director', 'CEO', 'Coordinador']),
+                    sitioWeb: `www.${nombreEmpresa.toLowerCase().replace(/\s/g, '')}.com`,
+                    fechaCreacion: serverTimestamp(),
+                    fechaActualizacion: serverTimestamp()
+                };
+            }
+        }
+
+        function generarProducto() {
+            const base = random(productosBase);
+            const variacion = randomInt(0, 50);
+            return {
+                nombre: base.nombre,
+                descripcion: base.descripcion,
+                precioBase: base.precioBase + variacion,
+                sku: generateSKU(),
+                activo: true,
+                fechaCreacion: serverTimestamp(),
+                fechaActualizacion: serverTimestamp()
+            };
+        }
+
+        async function generarCotizacion(userId) {
+            // Obtener clientes y productos existentes
+            const clientesSnap = await getDocs(collection(db, `usuarios/${userId}/clientes`));
+            const productosSnap = await getDocs(collection(db, `usuarios/${userId}/productos`));
+            
+            if (clientesSnap.empty) {
+                throw new Error('Debes crear clientes primero');
+            }
+            if (productosSnap.empty) {
+                throw new Error('Debes crear productos primero');
+            }
+
+            // Obtener contador actual
+            const contadorSnap = await getDocs(collection(db, `usuarios/${userId}/contadores`));
+            let numeroActual = 1;
+            if (!contadorSnap.empty) {
+                numeroActual = contadorSnap.docs[0].data().actual + 1;
+            }
+
+            const clientes = clientesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const productos = productosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            const cliente = random(clientes);
+            const numItems = randomInt(1, 5);
+            const items = [];
+            let subtotal = 0;
+
+            for (let i = 0; i < numItems; i++) {
+                const producto = random(productos);
+                const cantidad = randomInt(1, 10);
+                const precio = producto.precioBase;
+                const itemSubtotal = cantidad * precio;
+                
+                items.push({
+                    productId: producto.id,
+                    productName: producto.nombre,
+                    quantity: cantidad,
+                    price: precio,
+                    subtotal: itemSubtotal
+                });
+                
+                subtotal += itemSubtotal;
+            }
+
+            const impuestos = subtotal * 0.19; // IVA 19%
+            const total = subtotal + impuestos;
+
+            const vencimiento = new Date();
+            vencimiento.setDate(vencimiento.getDate() + randomInt(7, 60));
+
+            const cotizacion = {
+                numero: `COT-${numeroActual.toString().padStart(4, '0')}`,
+                clienteId: cliente.id,
+                clienteNombre: cliente.nombre,
+                estado: random(estadosCotizacion),
+                condicionesPago: random(condicionesPago),
+                lineas: items,
+                subtotal: parseFloat(subtotal.toFixed(2)),
+                impuestos: parseFloat(impuestos.toFixed(2)),
+                total: parseFloat(total.toFixed(2)),
+                fechaCreacion: serverTimestamp(),
+                vencimiento: vencimiento,
+                notas: 'Cotización generada automáticamente'
+            };
+
+            // Actualizar contador
+            await addDoc(collection(db, `usuarios/${userId}/contadores`), {
+                actual: numeroActual,
+                ultimaActualizacion: serverTimestamp()
+            });
+
+            return cotizacion;
+        }
+
+        // ============================================
+        // FUNCIONES DE FIRESTORE
+        // ============================================
+        async function getUserId() {
+            return userIdInput.value.trim();
+        }
+
+        async function testConnection() {
+            testConnectionBtn.disabled = true;
+            testConnectionBtn.textContent = '🔄 Probando...';
+            connectionStatus.classList.add('hidden');
+
+            try {
+                const userId = await getUserId();
+                if (!userId) {
+                    throw new Error('Por favor ingresa un User ID');
+                }
+
+                // Intentar leer la colección de clientes
+                const testRef = collection(db, `usuarios/${userId}/clientes`);
+                await getDocs(query(testRef, limit(1)));
+                
+                connectionStatus.className = 'mt-2 text-sm bg-green-500/20 text-white px-3 py-2 rounded';
+                connectionStatus.textContent = '✅ Conexión exitosa';
+                connectionStatus.classList.remove('hidden');
+                
+                // Iniciar listeners
+                startListeners(userId);
+            } catch (error) {
+                connectionStatus.className = 'mt-2 text-sm bg-red-500/20 text-white px-3 py-2 rounded';
+                connectionStatus.textContent = `❌ Error: ${error.message}`;
+                connectionStatus.classList.remove('hidden');
+            } finally {
+                testConnectionBtn.disabled = false;
+                testConnectionBtn.textContent = '🔌 Probar Conexión';
+            }
+        }
+
+        function startListeners(userId) {
+            // Listener de clientes
+            onSnapshot(collection(db, `usuarios/${userId}/clientes`), (snapshot) => {
+                clientsCount.textContent = snapshot.size;
+            });
+
+            // Listener de productos
+            onSnapshot(collection(db, `usuarios/${userId}/productos`), (snapshot) => {
+                productsCount.textContent = snapshot.size;
+            });
+
+            // Listener de cotizaciones
+            onSnapshot(collection(db, `usuarios/${userId}/cotizaciones`), (snapshot) => {
+                quotesCount.textContent = snapshot.size;
+            });
+        }
+
+        async function crearClientes(cantidad) {
+            const userId = await getUserId();
+            const promises = [];
+            
+            for (let i = 0; i < cantidad; i++) {
+                const cliente = generarCliente();
+                promises.push(addDoc(collection(db, `usuarios/${userId}/clientes`), cliente));
+            }
+            
+            await Promise.all(promises);
+            showFeedback(`✅ ${cantidad} cliente(s) creado(s) exitosamente`);
+            addToRecentData('👥', `${cantidad} cliente(s) creado(s)`, 'bg-blue-50');
+        }
+
+        async function crearProductos(cantidad) {
+            const userId = await getUserId();
+            const promises = [];
+            
+            for (let i = 0; i < cantidad; i++) {
+                const producto = generarProducto();
+                promises.push(addDoc(collection(db, `usuarios/${userId}/productos`), producto));
+            }
+            
+            await Promise.all(promises);
+            showFeedback(`✅ ${cantidad} producto(s) creado(s) exitosamente`);
+            addToRecentData('📦', `${cantidad} producto(s) creado(s)`, 'bg-green-50');
+        }
+
+        async function crearCotizaciones(cantidad) {
+            const userId = await getUserId();
+            
+            for (let i = 0; i < cantidad; i++) {
+                const cotizacion = await generarCotizacion(userId);
+                await addDoc(collection(db, `usuarios/${userId}/cotizaciones`), cotizacion);
+            }
+            
+            showFeedback(`✅ ${cantidad} cotización(es) creada(s) exitosamente`);
+            addToRecentData('📄', `${cantidad} cotización(es) creada(s)`, 'bg-purple-50');
+        }
+
+        async function eliminarTodos(tipo) {
+            const userId = await getUserId();
+            const snapshot = await getDocs(collection(db, `usuarios/${userId}/${tipo}`));
+            
+            const promises = snapshot.docs.map(d => deleteDoc(d.ref));
+            await Promise.all(promises);
+            
+            showFeedback(`✅ Todos los ${tipo} eliminados`);
+        }
+
+        async function inicializarTodo() {
+            initializeAllBtn.disabled = true;
+            initializeAllBtn.textContent = '⏳ Creando dataset completo...';
+            
+            try {
+                await crearClientes(20);
+                await crearProductos(15);
+                await crearCotizaciones(10);
+                
+                showFeedback('✅ ¡Dataset completo creado exitosamente! 🎉');
+                addToRecentData('🎯', 'Dataset completo inicializado', 'bg-emerald-50');
+            } catch (error) {
+                showFeedback(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                initializeAllBtn.disabled = false;
+                initializeAllBtn.textContent = '⚡ Crear Dataset Completo';
+            }
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        testConnectionBtn.addEventListener('click', testConnection);
+        
+        generateClientBtn.addEventListener('click', () => crearClientes(1));
+        generate10ClientsBtn.addEventListener('click', () => crearClientes(10));
+        deleteClientsBtn.addEventListener('click', () => {
+            if (confirm('¿Eliminar todos los clientes?')) eliminarTodos('clientes');
+        });
+        
+        generateProductBtn.addEventListener('click', () => crearProductos(1));
+        generate10ProductsBtn.addEventListener('click', () => crearProductos(10));
+        deleteProductsBtn.addEventListener('click', () => {
+            if (confirm('¿Eliminar todos los productos?')) eliminarTodos('productos');
+        });
+        
+        generateQuoteBtn.addEventListener('click', () => crearCotizaciones(1));
+        generate5QuotesBtn.addEventListener('click', () => crearCotizaciones(5));
+        deleteQuotesBtn.addEventListener('click', () => {
+            if (confirm('¿Eliminar todas las cotizaciones?')) eliminarTodos('cotizaciones');
+        });
+        
+        initializeAllBtn.addEventListener('click', inicializarTodo);
+
+        // Probar conexión al cargar
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000);
+        });
+    </script>
+</body>
+</html>
