@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archivos de entorno local
+.env.local
+
+# Archivos de prueba o scripts temporales
+crearDatosFicticios.html
