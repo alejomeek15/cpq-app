@@ -12,11 +12,14 @@ import {
   BreadcrumbSeparator,
 } from "@/ui/breadcrumb.jsx";
 
-// ¡CAMBIO! Ya NO recibe 'user' ni 'auth' como props
-const ClientesPage = ({ db, navigate }) => {
+// CAMBIO: Ahora recibe navigationState para el filtro
+const ClientesPage = ({ db, navigate, navigationState }) => {
     const [view, setView] = useState('list');
     const [currentClientId, setCurrentClientId] = useState(null);
     const [notification, setNotification] = useState(null);
+
+    // NUEVO: Extraer filterByName del navigationState si existe
+    const initialFilter = navigationState?.filterByName || '';
 
     const showListView = (message = null) => {
         setView('list');
@@ -59,7 +62,6 @@ const ClientesPage = ({ db, navigate }) => {
       </Breadcrumb>
     );
 
-    // ¡CAMBIO! Simplificado - solo pasamos 'db'
     const renderContent = () => {
         const props = {
             db,
@@ -81,7 +83,8 @@ const ClientesPage = ({ db, navigate }) => {
                           onEditClient={showFormView} 
                           onAddNewClient={() => showFormView(null)} 
                           onImportClients={showImportView} 
-                          setNotification={setNotification} 
+                          setNotification={setNotification}
+                          initialFilter={initialFilter}
                        />;
         }
     };

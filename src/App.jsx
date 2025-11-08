@@ -36,26 +36,28 @@ const LoadingScreen = () => (
 export default function App() {
   const [route, setRoute] = useState('dashboard');
   const [targetQuoteId, setTargetQuoteId] = useState(null);
+  const [navigationState, setNavigationState] = useState(null); // NUEVO: Estado para pasar datos entre páginas
 
   const { user, loading: loadingAuth } = useAuth();
 
-  const handleNavigate = (newRoute, payload = null) => {
+  // CAMBIO: Ahora acepta 3 parámetros
+  const handleNavigate = (newRoute, payload = null, state = null) => {
     setRoute(newRoute);
     setTargetQuoteId(payload);
+    setNavigationState(state); // NUEVO: Guardar el estado de navegación
   };
 
   const clearTargetQuote = () => {
     setTargetQuoteId(null);
   };
 
-  // ¡CAMBIO! Solo pasamos 'db' y 'navigate' (lo demás lo obtienen del Context)
   const renderRoute = () => {
     const props = { db, navigate: handleNavigate };
     switch (route) {
       case 'dashboard': 
         return <Dashboard {...props} />;
       case 'clients': 
-        return <ClientesPage {...props} />;
+        return <ClientesPage {...props} navigationState={navigationState} />; // NUEVO: Pasar navigationState
       case 'catalog': 
         return <CatalogoPage {...props} />;
       case 'quotes': 
@@ -92,7 +94,6 @@ export default function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="cpq-app-theme">
       <SidebarProvider className="min-h-screen bg-background text-foreground">
-        {/* ¡CAMBIO! AppSidebar ya obtiene user del Context si lo necesita */}
         <AppSidebar navigate={handleNavigate} route={route} />
 
         <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 min-w-0">

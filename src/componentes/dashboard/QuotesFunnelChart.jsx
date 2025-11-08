@@ -155,8 +155,22 @@ export const QuotesFunnelChart = ({ data }) => {
 
   // Calcular el valor máximo y generar ticks apropiados
   const maxValue = chartData.length > 0 ? Math.max(...chartData.map(d => d.value)) : 0;
-  const tickCount = Math.min(maxValue + 1, 10); // Máximo 10 ticks
-  const xAxisTicks = Array.from({ length: tickCount }, (_, i) => i);
+  
+  // Redondear hacia arriba para tener un máximo "bonito"
+  const maxAxisValue = Math.ceil(maxValue * 1.1); // 10% más que el máximo para dar espacio
+  
+  // Generar ticks - dependiendo del rango
+  let xAxisTicks;
+  if (maxAxisValue <= 10) {
+    // Si es 10 o menos, mostrar cada número
+    xAxisTicks = Array.from({ length: maxAxisValue + 1 }, (_, i) => i);
+  } else if (maxAxisValue <= 20) {
+    // Si es entre 11-20, mostrar de 2 en 2
+    xAxisTicks = Array.from({ length: Math.floor(maxAxisValue / 2) + 1 }, (_, i) => i * 2);
+  } else {
+    // Si es más de 20, mostrar de 5 en 5
+    xAxisTicks = Array.from({ length: Math.floor(maxAxisValue / 5) + 1 }, (_, i) => i * 5);
+  }
 
   return (
     <ResponsiveContainer width="100%" height={350}>
@@ -190,7 +204,7 @@ export const QuotesFunnelChart = ({ data }) => {
           axisLine={false}
           allowDecimals={false}
           tick={{ fill: tickColor }}
-          domain={[0, maxValue]}
+          domain={[0, maxAxisValue]}
           ticks={xAxisTicks}
         />
         

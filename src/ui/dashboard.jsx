@@ -101,8 +101,9 @@ const Dashboard = ({ db, navigate }) => {
     navigate('quotes'); // Navegar a QuoteList (QuotesPage.jsx)
   };
 
-  const handleClienteClick = (clienteId) => {
-    navigate('clients', clienteId); // Navegar a detalle del cliente
+  const handleClienteClick = (clienteId, clienteNombre) => {
+    console.log('📍 Navegando a clientes con filtro:', clienteNombre);
+    navigate('clients', null, { filterByName: clienteNombre }); // Pasar nombre para filtrar
   };
 
   if (loading) {
@@ -310,7 +311,7 @@ const Dashboard = ({ db, navigate }) => {
               {topClientes.map((cliente, index) => (
                 <button
                   key={cliente.id}
-                  onClick={() => handleClienteClick(cliente.id)}
+                  onClick={() => handleClienteClick(cliente.id, cliente.nombre)}
                   className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
