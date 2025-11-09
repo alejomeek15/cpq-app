@@ -13,7 +13,8 @@ import {
 import StatCard from '@/componentes/dashboard/StatCard.jsx';
 import { RecentQuotesTable } from '@/componentes/dashboard/RecentQuotesTable.jsx';
 import { QuotesFunnelChart } from '@/componentes/dashboard/QuotesFunnelChart.jsx';
-import { DollarSign, FileText, Percent, AlertCircle, TrendingUp, TrendingDown, Users, Award } from 'lucide-react';
+import InsightsPanelPro from '@/componentes/dashboard/InsightsPanelPro.jsx';
+import { DollarSign, FileText, Percent, AlertCircle, TrendingUp, TrendingDown, Users, Award, Sparkles, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/ui/alert';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useTheme } from '@/ui/theme-provider';
@@ -22,6 +23,7 @@ const Dashboard = ({ db, navigate }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
 
+  const [activeTab, setActiveTab] = useState('metricas'); // NUEVO: Estado para tabs
   const [stats, setStats] = useState(null);
   const [recentQuotes, setRecentQuotes] = useState([]);
   const [urgentQuotes, setUrgentQuotes] = useState([]);
@@ -102,7 +104,6 @@ const Dashboard = ({ db, navigate }) => {
   };
 
   const handleClienteClick = (clienteId, clienteNombre) => {
-    console.log('📍 Navegando a clientes con filtro:', clienteNombre);
     navigate('clients', null, { filterByName: clienteNombre }); // Pasar nombre para filtrar
   };
 
@@ -155,9 +156,38 @@ const Dashboard = ({ db, navigate }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header con Tabs */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Dashboard</h1>
+          
+          {/* Tabs */}
+          <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setActiveTab('metricas')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'metricas'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Métricas
+            </button>
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'insights'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Insights con IA
+            </button>
+          </div>
+        </div>
+        
         <div className="text-sm text-muted-foreground">
           Actualizado: {new Date().toLocaleString('es-CO', { 
             day: 'numeric', 
@@ -168,7 +198,10 @@ const Dashboard = ({ db, navigate }) => {
         </div>
       </div>
 
-      {/* Métricas Principales - 3 Cards */}
+      {/* Contenido según tab activo */}
+      {activeTab === 'metricas' ? (
+        <>
+          {/* Métricas Principales - 3 Cards */}
       <div className="grid gap-6 md:grid-cols-3">
         {/* Monto Aprobado */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-xl border border-green-200 dark:border-green-800 p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -420,6 +453,11 @@ const Dashboard = ({ db, navigate }) => {
           <RecentQuotesTable quotes={recentQuotes} onRowClick={handleQuoteClick} />
         </div>
       </div>
+        </>
+      ) : (
+        /* Tab de Insights con IA */
+        <InsightsPanelPro db={db} />
+      )}
     </div>
   );
 };

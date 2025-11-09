@@ -25,6 +25,12 @@ dist-ssr
 
 # Archivos de entorno local
 .env.local
+.env
+
 
 # Archivos de prueba o scripts temporales
 crearDatosFicticios.html
+
+# Agregar a .gitignore en la raíz
+echo "functions/.env" >> .gitignore
+echo "functions/.runtimeconfig.json" >> .gitignore

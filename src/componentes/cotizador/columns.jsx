@@ -1,7 +1,6 @@
-import React from 'react'; // Removed useState, useEffect
-// Removed doc, getDoc imports
+import React from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import QuotePDF from './QuotePDF.jsx'; // This is now the selector component
+import QuotePDF from './QuotePDF.jsx';
 import { Button } from "@/ui/button.jsx";
 import { Checkbox } from "@/ui/checkbox.jsx";
 import {
@@ -12,24 +11,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/ui/dropdown-menu.jsx";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Mail } from "lucide-react";
 
-// Función de Badge (sin cambios)
+// Función de Badge
 const getStatusBadge = (status = 'Borrador') => {
     const s = status.toLowerCase().replace(/\s/g, '-');
     const styles = {
-        'borrador': 'bg-blue-500/10 text-blue-400', 'aprobada': 'bg-green-500/10 text-green-400',
-        'rechazada': 'bg-red-500/10 text-red-400', 'enviada': 'bg-amber-500/10 text-amber-400',
-        'en-negociacion': 'bg-purple-500/10 text-purple-400', 'vencida': 'bg-gray-500/10 text-gray-400'
+        'borrador': 'bg-blue-500/10 text-blue-400', 
+        'aprobada': 'bg-green-500/10 text-green-400',
+        'rechazada': 'bg-red-500/10 text-red-400', 
+        'enviada': 'bg-amber-500/10 text-amber-400',
+        'en-negociacion': 'bg-purple-500/10 text-purple-400', 
+        'vencida': 'bg-gray-500/10 text-gray-400'
     };
     return `px-2.5 py-0.5 text-xs font-semibold rounded-full ${styles[s] || 'bg-gray-500/10 text-gray-400'}`;
 };
 
-// --- REMOVED DownloadPDFMenuItem sub-component ---
-
-// --- Función principal createColumns ---
-// AHORA ACEPTA 'quoteStyleName' en lugar de 'db'
-export const createColumns = (onEditQuote, onDeleteQuote, clients, quoteStyleName) => [
+// Función principal createColumns
+export const createColumns = (
+  onEditQuote, 
+  onDeleteQuote, 
+  clients, 
+  quoteStyleName,
+  onSendEmail // NUEVO: callback para enviar email
+) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -86,7 +91,11 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients, quoteStyleNam
     header: () => <div className="text-center">Total</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("total") || 0);
-      const formatted = new Intl.NumberFormat("es-CO", { /* ... */ }).format(amount);
+      const formatted = new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0
+      }).format(amount);
       return <div className="text-center font-medium">{formatted}</div>;
     },
   },
@@ -119,15 +128,15 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients, quoteStyleNam
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              
               <DropdownMenuItem onClick={() => onEditQuote(quote.id)}>
                 Editar Cotización
               </DropdownMenuItem>
 
-              {/* --- MODIFICADO: Pasar styleName directamente --- */}
+              {/* Descargar PDF */}
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   {client ? (
                       <PDFDownloadLink
-                          // Pasar la prop 'styleName' aquí
                           document={<QuotePDF quote={quote} client={client} styleName={quoteStyleName} />}
                           fileName={`${quote.numero || 'cotizacion'}.pdf`}
                           style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}
@@ -138,9 +147,18 @@ export const createColumns = (onEditQuote, onDeleteQuote, clients, quoteStyleNam
                       <span style={{color: 'gray', fontSize: '12px'}}>Cargando datos cliente...</span>
                   )}
               </DropdownMenuItem>
-              {/* --- FIN MODIFICACIÓN --- */}
+
+              {/* NUEVO: Enviar por Email */}
+              <DropdownMenuItem 
+                onClick={() => onSendEmail && onSendEmail(quote, client)}
+                disabled={!client || !client.email}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Enviar por Email
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
+              
               <DropdownMenuItem
                 className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
                 onClick={() => onDeleteQuote(quote.id)}

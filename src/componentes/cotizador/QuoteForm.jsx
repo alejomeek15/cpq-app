@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, Timestamp, query, where } from 'firebase/firestore';
-import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
+import { useAuth } from '@/context/useAuth';
+import { getFunctions } from 'firebase/functions';
 import { pdf } from '@react-pdf/renderer';
 import QuotePDF from './QuotePDF.jsx';
 import ProductoForm from '../catalogo/ProductoForm.jsx';
@@ -16,8 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/ui/select.jsx";
-import { Trash2, AlertCircle, X, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Trash2, AlertCircle, X, ShoppingCart, ArrowLeft, Mail } from 'lucide-react';
 import { DatePicker } from '@/ui/DatePicker.jsx';
+import { SendEmailDialog } from './SendEmailDialog.jsx';
+import { useSendQuoteEmail } from '@/hooks/useSendQuoteEmail.jsx';
 
 // --- Sub-componente: NotificationModal (sin cambios) ---
 const NotificationModal = ({ message, onClose }) => (
@@ -180,7 +183,6 @@ const DownloadPDFButton = ({ quoteId, loading, clients, quote, subtotal, tax, to
 
 // --- Componente Principal: QuoteForm ---
 const QuoteForm = ({ db, quoteId, onBack }) => {
-  // ¡NUEVO! Obtener user del Context
   const { user } = useAuth();
 
   // --- Estados ---
@@ -196,6 +198,13 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
   const [canSave, setCanSave] = useState(true);
   const [globalConfig, setGlobalConfig] = useState(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
+  
+  // NUEVO: Estados para envío de email
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  
+  // NUEVO: Hook de envío de email
+  const functions = getFunctions();
+  const { sendQuoteEmail, sending: sendingEmail } = useSendQuoteEmail(functions);
 
   // --- Funciones de Carga ---
   const fetchProducts = useCallback(async () => {
@@ -374,6 +383,44 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
     }
   };
 
+  // NUEVO: Función para enviar email
+  const handleSendEmail = async (email) => {
+    const client = clients.find(c => c.id === quote.clienteId);
+    
+    if (!client) {
+      setErrorNotification({ message: 'Cliente no encontrado' });
+      return;
+    }
+
+    if (!user || !user.email) {
+      setErrorNotification({ message: 'Usuario no autenticado' });
+      return;
+    }
+
+    try {
+      await sendQuoteEmail({
+        quoteId: quoteId,
+        quote: {
+          ...quote,
+          total,
+          subtotal,
+          impuestos: tax
+        },
+        client: {
+          ...client,
+          email: email // Usar el email del dialog (puede ser editado)
+        },
+        quoteStyleName: globalConfig?.quoteStyle || 'Bubble'
+      });
+
+      // Éxito - el dialog se cierra automáticamente
+      // El estado ya se actualiza en Firestore por la Cloud Function
+    } catch (error) {
+      console.error('Error enviando email:', error);
+      setErrorNotification({ message: error.message || 'Error al enviar email' });
+    }
+  };
+
   // --- Función de Cálculo (sin cambios) ---
   const calculateTotals = () => {
     const lineasValidas = Array.isArray(quote.lineas) ? quote.lineas : [];
@@ -408,7 +455,9 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
               <div className="flex justify-between items-center">
                   <input type="text" name="numero" value={quote.numero} readOnly className={`text-4xl font-bold bg-transparent border-none focus:ring-0 p-0 h-auto ${quote.numero === 'ERROR' ? 'text-destructive' : 'text-foreground'}`} />
                   <div className="flex items-center gap-2">
-                      <Button variant="secondary" onClick={() => onBack(false)} disabled={loading && canSave}>Cancelar</Button>
+                      <Button variant="secondary" onClick={() => onBack(false)} disabled={loading && canSave}>
+                        Cancelar
+                      </Button>
                       <Button onClick={handleSave} disabled={!canSave || (loading && canSave)}>
                           {loading && canSave ? 'Guardando...' : (canSave ? 'Guardar Cotización' : 'Error al Cargar')}
                       </Button>
@@ -422,6 +471,17 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                           total={total}
                           quoteStyleName={globalConfig?.quoteStyle}
                       />
+                      {/* NUEVO: Botón Enviar por Email */}
+                      {quoteId && (
+                          <Button 
+                              variant="default" 
+                              onClick={() => setEmailDialogOpen(true)}
+                              disabled={!canSave || loading || loadingConfig || !quote.clienteId}
+                          >
+                              <Mail className="mr-2 h-4 w-4" />
+                              Enviar por Email
+                          </Button>
+                      )}
                   </div>
               </div>
           </div>
@@ -510,6 +570,23 @@ const QuoteForm = ({ db, quoteId, onBack }) => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* NUEVO: Dialog de Envío de Email */}
+            {emailDialogOpen && (
+                <SendEmailDialog
+                    open={emailDialogOpen}
+                    onOpenChange={setEmailDialogOpen}
+                    client={clients.find(c => c.id === quote.clienteId)}
+                    quote={{
+                        ...quote,
+                        total,
+                        subtotal,
+                        impuestos: tax
+                    }}
+                    onSend={handleSendEmail}
+                    sending={sendingEmail}
+                />
+            )}
       </div>
   );
 };

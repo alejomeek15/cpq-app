@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, getDocs, writeBatch, doc, getDoc } from 'firebase/firestore';
-import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
+import { useAuth } from '@/context/useAuth';
+import { getFunctions } from 'firebase/functions';
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
 import { createColumns } from './columns.jsx';
@@ -9,6 +10,8 @@ import AlertDialog from '../comunes/AlertDialog.jsx';
 import CardView from '../comunes/CardView';
 import QuoteCard from './QuoteCard';
 import { QuoteBoard } from './QuoteBoard.jsx';
+import { SendEmailDialog } from './SendEmailDialog.jsx';
+import { useSendQuoteEmail } from '@/hooks/useSendQuoteEmail.jsx';
 
 // --- Icons (sin cambios) ---
 const ListIcon = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 9a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 14a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"></path></svg>;
@@ -26,9 +29,7 @@ const normalizarTexto = (str) => {
     .replace(/[\u0300-\u036f]/g, "");
 };
 
-// ¡CAMBIO! Ya NO recibe 'user' como prop
 const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, loadingClients }) => {
-    // ¡NUEVO! Obtener user del Context
     const { user } = useAuth();
 
     // --- State variables ---
@@ -42,10 +43,57 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
 
     const [globalConfig, setGlobalConfig] = useState(null);
     const [loadingConfig, setLoadingConfig] = useState(true);
+    
+    // NUEVO: Estados para email
+    const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+    const [selectedQuote, setSelectedQuote] = useState(null);
+    const [selectedClient, setSelectedClient] = useState(null);
+    
+    // NUEVO: Hook de envío de email
+    const functions = getFunctions();
+    const { sendQuoteEmail, sending: sendingEmail } = useSendQuoteEmail(functions);
 
     const handleDeleteQuote = (quoteId) => {
         setItemsToDelete([quoteId]);
         setDialogOpen(true);
+    };
+    
+    // NUEVO: Función para abrir dialog de email
+    const handleSendEmail = (quote, client) => {
+        setSelectedQuote(quote);
+        setSelectedClient(client);
+        setEmailDialogOpen(true);
+    };
+    
+    // NUEVO: Función para enviar email
+    const handleSendEmailSubmit = async (email) => {
+        try {
+            await sendQuoteEmail({
+                quoteId: selectedQuote.id,
+                quote: selectedQuote,
+                client: {
+                    ...selectedClient,
+                    email: email
+                },
+                quoteStyleName: globalConfig?.quoteStyle || 'Bubble'
+            });
+            
+            // Recargar cotizaciones para reflejar el cambio de estado
+            fetchQuotes();
+            
+            setNotification({
+                type: 'success',
+                title: 'Email enviado',
+                message: `Cotización enviada exitosamente a ${email}`
+            });
+        } catch (error) {
+            console.error('Error enviando email:', error);
+            setNotification({
+                type: 'error',
+                title: 'Error',
+                message: error.message || 'No se pudo enviar el email'
+            });
+        }
     };
 
     // ¡CAMBIO! useEffect para cargar configuración DEL USUARIO
@@ -83,8 +131,14 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
     const columns = useMemo(() => {
         const quoteStyle = globalConfig?.quoteStyle || 'Bubble';
         console.log("[QuoteList] Passing quoteStyle to createColumns:", quoteStyle);
-        return createColumns(onEditQuote, handleDeleteQuote, clients, quoteStyle, db);
-    }, [onEditQuote, clients, globalConfig, db]);
+        return createColumns(
+            onEditQuote, 
+            handleDeleteQuote, 
+            clients, 
+            quoteStyle,
+            handleSendEmail  // NUEVO: Pasar función de email
+        );
+    }, [onEditQuote, clients, globalConfig]);
 
     // ¡CAMBIO! fetchQuotes ahora obtiene cotizaciones DEL USUARIO
     const fetchQuotes = useCallback(async () => {
@@ -226,6 +280,18 @@ const QuoteList = ({ db, onAddNewQuote, onEditQuote, setNotification, clients, l
                   db={db}
                   setNotification={setNotification}
                   fetchQuotes={fetchQuotes}
+                />
+            )}
+            
+            {/* NUEVO: Dialog de Envío de Email */}
+            {emailDialogOpen && (
+                <SendEmailDialog
+                    open={emailDialogOpen}
+                    onOpenChange={setEmailDialogOpen}
+                    client={selectedClient}
+                    quote={selectedQuote}
+                    onSend={handleSendEmailSubmit}
+                    sending={sendingEmail}
                 />
             )}
         </div>
