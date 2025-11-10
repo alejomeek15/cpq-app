@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
+import { useAuth } from '@/context/useAuth';
 import ProductList from './ProductList.jsx';
 import ProductTypeSelector from './ProductTypeSelector.jsx';
 import SimpleProductForm from './SimpleProductForm.jsx';
@@ -15,11 +15,11 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/ui/dialog.jsx";
 
-// ¡CAMBIO! Ya NO recibe 'user' ni 'auth' como props
 const CatalogoPage = ({ db, navigate }) => {
-  // ¡NUEVO! Obtener user del Context
   const { user } = useAuth();
 
   const [view, setView] = useState('list');
@@ -29,6 +29,8 @@ const CatalogoPage = ({ db, navigate }) => {
   const handleProductClick = (product) => {
     console.log("Selected Product:", product);
     setSelectedProduct(product);
+    // Aquí podrías abrir un modal o navegar a vista de detalles
+    setView('edit');
   };
 
   const handleAddNewProduct = () => {
@@ -39,7 +41,9 @@ const CatalogoPage = ({ db, navigate }) => {
     setIsTypeSelectorOpen(false);
     if (type === 'simple') {
       setView('simple-form');
+      setSelectedProduct(null); // Crear nuevo
     }
+    // Aquí agregar lógica para otros tipos
   };
 
   const handleBackToList = () => {
@@ -47,11 +51,19 @@ const CatalogoPage = ({ db, navigate }) => {
     setSelectedProduct(null);
   };
 
-  // ¡NUEVO! Validar que el usuario esté autenticado
-  if (!user || !user.uid) {
+  const handleEditProduct = (product) => {
+    setSelectedProduct(product);
+    setView('simple-form'); // O determinar según product.tipo
+  };
+
+  // Validar autenticación
+  if (!user?.uid) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>Cargando catálogo...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Cargando catálogo...</p>
+        </div>
       </div>
     );
   }
@@ -59,20 +71,31 @@ const CatalogoPage = ({ db, navigate }) => {
   const renderContent = () => {
     switch (view) {
       case 'simple-form':
-        return <SimpleProductForm db={db} onBack={handleBackToList} onSave={handleBackToList} />;
+        return (
+          <SimpleProductForm 
+            db={db} 
+            product={selectedProduct} // Pasar producto si es edición
+            onBack={handleBackToList} 
+            onSave={handleBackToList} 
+          />
+        );
 
       case 'list':
       default:
-        return <ProductList
-          db={db}
-          onProductClick={handleProductClick}
-          onAddNewProduct={handleAddNewProduct}
-        />;
+        return (
+          <ProductList
+            db={db}
+            onProductClick={handleProductClick}
+            onAddNewProduct={handleAddNewProduct}
+            onEditProduct={handleEditProduct}
+          />
+        );
     }
   };
 
   return (
     <div className="w-full">
+      {/* Breadcrumb */}
       <div className="mb-8">
         <SidebarTrigger />
         <div className="mt-4">
@@ -91,11 +114,15 @@ const CatalogoPage = ({ db, navigate }) => {
           </Breadcrumb>
         </div>
       </div>
-
+      
       {renderContent()}
 
+      {/* Dialog para selector de tipo */}
       <Dialog open={isTypeSelectorOpen} onOpenChange={setIsTypeSelectorOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Producto</DialogTitle>
+          </DialogHeader>
           <ProductTypeSelector onSelectType={handleTypeSelected} />
         </DialogContent>
       </Dialog>
