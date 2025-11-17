@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { useAuth } from '@/context/useAuth'; // ¡NUEVO!
+import { useAuth } from '@/context/useAuth';
 import { Button } from '@/ui/button.jsx';
 import { Input } from '@/ui/input.jsx';
 import { Textarea } from '@/ui/textarea.jsx';
@@ -9,10 +9,9 @@ import { Dialog, DialogContent } from '@/ui/dialog.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/select.jsx';
 import ManageAttributes from './ManageAttributes.jsx';
 import { X } from 'lucide-react';
+import ManageCategories from './ManageCategories.jsx';
 
-// ¡CAMBIO! Ya NO recibe 'user' como prop
 const SimpleProductForm = ({ db, onBack, onSave }) => {
-  // ¡NUEVO! Obtener user del Context
   const { user } = useAuth();
 
   const [product, setProduct] = useState({
@@ -28,16 +27,14 @@ const SimpleProductForm = ({ db, onBack, onSave }) => {
   const [isAddAttributeOpen, setIsAddAttributeOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
 
-  // ¡CAMBIO! Escucha atributos y categorías DEL USUARIO
   useEffect(() => {
-    // ¡NUEVO! Validar que el usuario esté autenticado
     if (!user || !user.uid) {
       return;
     }
 
     try {
-      // ¡CAMBIO! Rutas anidadas con user.uid
       const unsubAttributes = onSnapshot(
         collection(db, 'usuarios', user.uid, 'atributos'),
         (snapshot) => {
@@ -68,7 +65,7 @@ const SimpleProductForm = ({ db, onBack, onSave }) => {
       console.error("Error setting up listeners:", err);
       setError("Error al configurar los listeners");
     }
-  }, [db, user]); // ¡CAMBIO! Añadir 'user' a las dependencias
+  }, [db, user]);
 
   useEffect(() => {
     const precioBase = parseFloat(product.precioBase) || 0;
@@ -112,11 +109,9 @@ const SimpleProductForm = ({ db, onBack, onSave }) => {
     ));
   };
 
-  // ¡CAMBIO! handleSubmit ahora usa la ruta anidada
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ¡NUEVO! Validar que el usuario esté autenticado
     if (!user || !user.uid) {
       setError('Error: Usuario no autenticado.');
       return;
@@ -147,7 +142,6 @@ const SimpleProductForm = ({ db, onBack, onSave }) => {
     };
 
     try {
-      // ¡CAMBIO! Ruta anidada con user.uid
       await addDoc(collection(db, "usuarios", user.uid, "productos"), productToSave);
       onSave();
     } catch (err) {
@@ -225,15 +219,42 @@ const SimpleProductForm = ({ db, onBack, onSave }) => {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle>Categorías</CardTitle></CardHeader>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Categorías</CardTitle>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsManageCategoriesOpen(true)} 
+                    disabled={isSaving}
+                  >
+                    Gestionar
+                  </Button>
+                </div>
+              </CardHeader>
               <CardContent>
                 <div className="max-h-32 overflow-y-auto space-y-2 p-2 border rounded-md">
-                  {allCategories.map(cat => (
-                    <div key={cat.id} className="flex items-center space-x-2">
-                      <input type="checkbox" id={`cat-${cat.id}`} checked={selectedCategories.has(cat.id)} onChange={() => handleCategoryChange(cat.id)} disabled={isSaving} />
-                      <label htmlFor={`cat-${cat.id}`} className="text-sm text-foreground">{cat.nombre}</label>
-                    </div>
-                  ))}
+                  {allCategories.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      No hay categorías. Click en "Gestionar" para crear.
+                    </p>
+                  ) : (
+                    allCategories.map(cat => (
+                      <div key={cat.id} className="flex items-center space-x-2">
+                        <input 
+                          type="checkbox" 
+                          id={`cat-${cat.id}`} 
+                          checked={selectedCategories.has(cat.id)} 
+                          onChange={() => handleCategoryChange(cat.id)} 
+                          disabled={isSaving} 
+                        />
+                        <label htmlFor={`cat-${cat.id}`} className="text-sm text-foreground">
+                          {cat.nombre}
+                        </label>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -272,6 +293,15 @@ const SimpleProductForm = ({ db, onBack, onSave }) => {
 
       <Dialog open={isManageAttributesOpen} onOpenChange={setIsManageAttributesOpen}>
         <DialogContent className="max-w-4xl"><ManageAttributes db={db} onDone={() => setIsManageAttributesOpen(false)} /></DialogContent>
+      </Dialog>
+
+      <Dialog open={isManageCategoriesOpen} onOpenChange={setIsManageCategoriesOpen}>
+        <DialogContent className="max-w-2xl">
+          <ManageCategories 
+            db={db} 
+            onDone={() => setIsManageCategoriesOpen(false)} 
+          />
+        </DialogContent>
       </Dialog>
 
       <Dialog open={isAddAttributeOpen} onOpenChange={setIsAddAttributeOpen}>

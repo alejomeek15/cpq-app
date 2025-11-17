@@ -3,15 +3,6 @@ import { useAuth } from '@/context/useAuth';
 import ProductList from './ProductList.jsx';
 import ProductTypeSelector from './ProductTypeSelector.jsx';
 import SimpleProductForm from './SimpleProductForm.jsx';
-import { SidebarTrigger } from '@/ui/sidebar.jsx';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/ui/breadcrumb.jsx";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +25,7 @@ const CatalogoPage = ({ db, navigate }) => {
   };
 
   const handleAddNewProduct = () => {
+    setSelectedProduct(null); // Limpiar producto seleccionado
     setIsTypeSelectorOpen(true);
   };
 
@@ -41,7 +33,6 @@ const CatalogoPage = ({ db, navigate }) => {
     setIsTypeSelectorOpen(false);
     if (type === 'simple') {
       setView('simple-form');
-      setSelectedProduct(null); // Crear nuevo
     }
     // Aquí agregar lógica para otros tipos
   };
@@ -53,7 +44,11 @@ const CatalogoPage = ({ db, navigate }) => {
 
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
-    setView('simple-form'); // O determinar según product.tipo
+    // Determinar el tipo de formulario según el tipo de producto
+    if (product.tipo === 'simple' || !product.tipo) {
+      setView('simple-form');
+    }
+    // Aquí agregar para composite y kit cuando los implementes
   };
 
   // Validar autenticación
@@ -86,8 +81,8 @@ const CatalogoPage = ({ db, navigate }) => {
           <ProductList
             db={db}
             onProductClick={handleProductClick}
-            onAddNewProduct={handleAddNewProduct}
             onEditProduct={handleEditProduct}
+            onAddNewProduct={handleAddNewProduct}
           />
         );
     }
@@ -95,26 +90,6 @@ const CatalogoPage = ({ db, navigate }) => {
 
   return (
     <div className="w-full">
-      {/* Breadcrumb */}
-      <div className="mb-8">
-        <SidebarTrigger />
-        <div className="mt-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink onClick={() => navigate('dashboard')} className="cursor-pointer">
-                  Dashboard
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Catálogo</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </div>
-      
       {renderContent()}
 
       {/* Dialog para selector de tipo */}

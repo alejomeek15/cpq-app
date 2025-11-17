@@ -1,0 +1,163 @@
+// api/generate-insights.js
+// Vercel Serverless Function para generar insights de forma SEGURA
+
+import OpenAI from 'openai';
+
+export default async function handler(req, res) {
+  // Solo permitir POST
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  try {
+    // 1. Validar autenticación
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    
+    // TODO: Validar token de Firebase (opcional pero recomendado)
+    // const admin = require('firebase-admin');
+    // const decodedToken = await admin.auth().verifyIdToken(token);
+    // const userId = decodedToken.uid;
+
+    // 2. Obtener datos del request
+    const { completeData } = req.body;
+
+    if (!completeData) {
+      return res.status(400).json({ error: 'Datos incompletos' });
+    }
+
+    // 3. Validar tamaño de datos
+    const dataSize = JSON.stringify(completeData).length;
+    const MAX_SIZE = 500000; // 500KB
+    
+    if (dataSize > MAX_SIZE) {
+      return res.status(413).json({ 
+        error: 'Datos muy grandes', 
+        maxSize: MAX_SIZE,
+        currentSize: dataSize 
+      });
+    }
+
+    // 4. Inicializar OpenAI de forma SEGURA
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+
+    const startTime = Date.now();
+    console.log('🤖 Generando insights con IA...');
+
+    // 5. Llamar a OpenAI
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Eres un analista de negocios experto en CPQ y ventas B2B. 
+Analiza los datos proporcionados y genera insights ESPECÍFICOS, ACCIONABLES y PROFUNDOS.
+No hagas afirmaciones genéricas. Usa números concretos y nombres específicos.
+Identifica patrones ocultos, tendencias y oportunidades que el usuario podría no haber notado.
+Sé directo y enfócate en insights que generen valor real.
+Responde en español y en formato JSON válido.`
+        },
+        {
+          role: "user",
+          content: `Analiza profundamente estos datos de mi negocio CPQ y genera insights valiosos:
+
+${JSON.stringify(completeData, null, 2)}
+
+Genera un JSON con insights específicos y accionables:
+{
+  "resumenEjecutivo": "Un párrafo con los hallazgos MÁS importantes y específicos",
+  "insightsDescriptivos": [
+    {
+      "titulo": "Título específico del insight",
+      "descripcion": "Explicación detallada con números y nombres concretos",
+      "impacto": "alto|medio|bajo",
+      "tipo": "oportunidad|advertencia|informacion"
+    }
+  ],
+  "insightsPredictivos": [
+    {
+      "titulo": "Predicción o tendencia específica",
+      "descripcion": "Explicación basada en los datos actuales",
+      "confianza": "alta|media|baja",
+      "tipo": "oportunidad|advertencia|informacion"
+    }
+  ],
+  "recomendaciones": [
+    {
+      "titulo": "Acción específica recomendada",
+      "descripcion": "Cómo implementarla y por qué es importante",
+      "prioridad": "alta|media|baja",
+      "impactoEstimado": "Descripción del impacto esperado"
+    }
+  ]
+}
+
+IMPORTANTE: 
+- Usa NÚMEROS CONCRETOS de los datos
+- Menciona NOMBRES ESPECÍFICOS de productos/clientes cuando sea relevante
+- NO uses frases genéricas como "algunos productos" o "ciertos clientes"
+- Cada insight debe ser ACCIONABLE
+- Enfócate en hallazgos que el usuario no vería fácilmente en un dashboard simple`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    });
+
+    const duration = Date.now() - startTime;
+
+    // 6. Parsear respuesta
+    const insightsText = completion.choices[0].message.content;
+    const insights = JSON.parse(insightsText);
+
+    // 7. Log para debugging y monitoreo
+    console.log('✅ Insights generados exitosamente');
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      tokensUsed: completion.usage.total_tokens,
+      cost: (completion.usage.total_tokens * 0.00002).toFixed(4),
+      duration: `${duration}ms`,
+      dataSize: `${(dataSize / 1024).toFixed(2)}KB`
+    }));
+
+    // 8. Retornar respuesta
+    return res.status(200).json({
+      success: true,
+      insights,
+      metadata: {
+        model: completion.model,
+        tokensUsed: completion.usage.total_tokens,
+        cost: (completion.usage.total_tokens * 0.00002).toFixed(4),
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error generando insights:', error);
+    
+    // Manejar errores específicos de OpenAI
+    if (error.response?.status === 429) {
+      return res.status(429).json({ 
+        error: 'Límite de rate excedido. Intenta de nuevo en unos momentos.' 
+      });
+    }
+    
+    if (error.response?.status === 401) {
+      return res.status(500).json({ 
+        error: 'Error de configuración del servidor' 
+      });
+    }
+
+    return res.status(500).json({ 
+      error: 'Error generando insights',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}

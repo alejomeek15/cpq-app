@@ -18,8 +18,16 @@ import LoginPage from '@/componentes/login/LoginPage.jsx';
 
 import { useAuth } from '@/context/useAuth';
 
-// Configuración de Firebase
-const firebaseConfig = window.firebaseConfig;
+// ✅ Configuración de Firebase usando variables de entorno
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
+};
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -36,15 +44,14 @@ const LoadingScreen = () => (
 export default function App() {
   const [route, setRoute] = useState('dashboard');
   const [targetQuoteId, setTargetQuoteId] = useState(null);
-  const [navigationState, setNavigationState] = useState(null); // NUEVO: Estado para pasar datos entre páginas
+  const [navigationState, setNavigationState] = useState(null);
 
   const { user, loading: loadingAuth } = useAuth();
 
-  // CAMBIO: Ahora acepta 3 parámetros
   const handleNavigate = (newRoute, payload = null, state = null) => {
     setRoute(newRoute);
     setTargetQuoteId(payload);
-    setNavigationState(state); // NUEVO: Guardar el estado de navegación
+    setNavigationState(state);
   };
 
   const clearTargetQuote = () => {
@@ -57,7 +64,7 @@ export default function App() {
       case 'dashboard': 
         return <Dashboard {...props} />;
       case 'clients': 
-        return <ClientesPage {...props} navigationState={navigationState} />; // NUEVO: Pasar navigationState
+        return <ClientesPage {...props} navigationState={navigationState} />;
       case 'catalog': 
         return <CatalogoPage {...props} />;
       case 'quotes': 

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/useAuth';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, BarChart3, RefreshCw } from 'lucide-react';
 import { Button } from '@/ui/button';
-import OpenAI from 'openai';
 
 const InsightsPanelPro = ({ db }) => {
   const { user } = useAuth();
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [cacheInfo, setCacheInfo] = useState(null); // Info sobre el caché
+  const [cacheInfo, setCacheInfo] = useState(null);
 
   // Clave para localStorage (específica por usuario)
   const CACHE_KEY = `insights_cache_${user?.uid}`;
@@ -50,7 +50,7 @@ const InsightsPanelPro = ({ db }) => {
         return false;
       }
 
-      console.log('✅ Caché válido - usando insights guardados');
+      console.log('✅ Caché válido');
       return true;
     } catch (error) {
       console.error('Error verificando caché:', error);
@@ -61,20 +61,19 @@ const InsightsPanelPro = ({ db }) => {
   // Cargar insights desde caché
   const loadFromCache = () => {
     try {
-      const cachedInsights = localStorage.getItem(CACHE_KEY);
-      const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+      const cached = localStorage.getItem(CACHE_KEY);
+      const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
       
-      if (cachedInsights && cachedTimestamp) {
-        const insights = JSON.parse(cachedInsights);
-        const timestamp = parseInt(cachedTimestamp);
-        const age = Date.now() - timestamp;
+      if (cached && timestamp) {
+        const insights = JSON.parse(cached);
+        const age = Date.now() - parseInt(timestamp);
         const hoursAgo = Math.floor(age / (1000 * 60 * 60));
         const minutesAgo = Math.floor((age % (1000 * 60 * 60)) / (1000 * 60));
         
         setInsights(insights);
         setCacheInfo({
           fromCache: true,
-          timestamp,
+          timestamp: parseInt(timestamp),
           age: hoursAgo > 0 ? `${hoursAgo}h` : `${minutesAgo}m`
         });
         
@@ -151,79 +150,76 @@ const InsightsPanelPro = ({ db }) => {
         }
 
         return {
+          id: doc.id,
           numero: data.numero,
-          cliente: data.clienteNombre,
-          clienteId: data.clienteId,
-          estado: data.estado,
-          total: data.total,
-          subtotal: data.subtotal,
-          impuestos: data.impuestos,
-          fechaCreacion: fechaCreacion ? fechaCreacion.toISOString().split('T')[0] : null,
-          vencimiento: vencimiento ? vencimiento.toISOString().split('T')[0] : null,
-          condicionesPago: data.condicionesPago,
-          productos: data.lineas?.map(linea => ({
-            nombre: linea.productName,
-            cantidad: linea.quantity,
-            precio: linea.price,
-            subtotal: linea.subtotal
-          })) || []
+          cliente: data.cliente?.nombre || data.cliente || 'Cliente desconocido',
+          estado: data.estado || 'Borrador',
+          total: data.total || 0,
+          subtotal: data.subtotal || 0,
+          impuestos: data.impuestos || 0,
+          fechaCreacion: fechaCreacion ? fechaCreacion.toISOString() : null,
+          vencimiento: vencimiento ? vencimiento.toISOString() : null,
+          items: data.items || [],
+          itemsCount: data.items?.length || 0
         };
       });
 
-      // IMPORTANTE: Guardar el total real
-      const totalCotizaciones = todasLasCotizaciones.length;
-      
-      // Limitar a 50 solo para enviar a la IA (no afecta el count)
-      const cotizaciones = todasLasCotizaciones.slice(0, 50);
-
-      // 2. Obtener TODOS los clientes con detalles
-      const clientsRef = collection(db, "usuarios", user.uid, "clientes");
-      const clientsSnapshot = await getDocs(clientsRef);
-      
-      const clientes = clientsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          nombre: data.nombre,
-          email: data.email,
-          telefono: data.telefono,
-          ciudad: data.direccion?.ciudad,
-          // Calcular estadísticas del cliente
-          cotizaciones: cotizaciones.filter(q => q.clienteId === doc.id)
-        };
-      }).map(cliente => ({
-        nombre: cliente.nombre,
-        totalCotizaciones: cliente.cotizaciones.length,
-        totalAprobadas: cliente.cotizaciones.filter(q => q.estado === 'Aprobada').length,
-        totalRechazadas: cliente.cotizaciones.filter(q => q.estado === 'Rechazada').length,
-        montoTotal: cliente.cotizaciones
-          .filter(q => q.estado === 'Aprobada')
-          .reduce((sum, q) => sum + (q.total || 0), 0),
-        tasaConversion: cliente.cotizaciones.length > 0 
-          ? (cliente.cotizaciones.filter(q => q.estado === 'Aprobada').length / cliente.cotizaciones.length * 100).toFixed(1)
-          : 0,
-        ultimaCotizacion: cliente.cotizaciones[0]?.fechaCreacion || null
+      // 2. Obtener TODOS los clientes
+      const clientesRef = collection(db, "usuarios", user.uid, "clientes");
+      const clientesSnapshot = await getDocs(clientesRef);
+      const clientes = clientesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
 
-      // 3. Obtener TODOS los productos con performance
+      // 3. Obtener TODOS los productos
+      const productosRef = collection(db, "usuarios", user.uid, "productos");
+      const productosSnapshot = await getDocs(productosRef);
+      const productos = productosSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Calcular métricas
+      const cotizaciones = todasLasCotizaciones;
+      const totalCotizaciones = cotizaciones.length;
+      const aprobadas = cotizaciones.filter(q => q.estado === 'Aprobada').length;
+      const rechazadas = cotizaciones.filter(q => q.estado === 'Rechazada').length;
+      const enNegociacion = cotizaciones.filter(q => q.estado === 'En negociación').length;
+      const enviadas = cotizaciones.filter(q => q.estado === 'Enviada').length;
+      const borradores = cotizaciones.filter(q => q.estado === 'Borrador').length;
+
+      const totalVentas = cotizaciones
+        .filter(q => q.estado === 'Aprobada')
+        .reduce((sum, q) => sum + q.total, 0);
+
+      const tasaConversion = totalCotizaciones > 0 
+        ? (aprobadas / totalCotizaciones * 100).toFixed(1)
+        : 0;
+
+      const ticketPromedio = aprobadas > 0 
+        ? totalVentas / aprobadas 
+        : 0;
+
+      // Análisis de productos
       const productosMap = new Map();
       
       cotizaciones.forEach(cotizacion => {
-        cotizacion.productos.forEach(prod => {
+        cotizacion.items?.forEach(prod => {
           if (!productosMap.has(prod.nombre)) {
             productosMap.set(prod.nombre, {
               nombre: prod.nombre,
               vecesCotizado: 0,
-              vecesAprobado: 0,
               cantidadTotal: 0,
-              montoTotal: 0
+              montoTotal: 0,
+              vecesAprobado: 0
             });
           }
           
           const producto = productosMap.get(prod.nombre);
           producto.vecesCotizado++;
-          producto.cantidadTotal += prod.cantidad;
-          producto.montoTotal += prod.subtotal;
+          producto.cantidadTotal += prod.cantidad || 0;
+          producto.montoTotal += prod.subtotal || 0;
           
           if (cotizacion.estado === 'Aprobada') {
             producto.vecesAprobado++;
@@ -231,25 +227,27 @@ const InsightsPanelPro = ({ db }) => {
         });
       });
 
-      const productos = Array.from(productosMap.values()).map(p => ({
+      const productosArray = Array.from(productosMap.values()).map(p => ({
         ...p,
         tasaConversion: p.vecesCotizado > 0 
           ? (p.vecesAprobado / p.vecesCotizado * 100).toFixed(1)
           : 0
       }));
 
-      // 4. Calcular tendencias temporales
+      // Tendencias temporales
       const now = new Date();
       const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
       const cotizacionesEsteMes = cotizaciones.filter(q => {
+        if (!q.fechaCreacion) return false;
         const fecha = new Date(q.fechaCreacion);
         return fecha >= firstDayThisMonth;
       });
 
       const cotizacionesMesAnterior = cotizaciones.filter(q => {
+        if (!q.fechaCreacion) return false;
         const fecha = new Date(q.fechaCreacion);
         return fecha >= firstDayLastMonth && fecha <= lastDayLastMonth;
       });
@@ -275,54 +273,59 @@ const InsightsPanelPro = ({ db }) => {
         }
       });
 
-      // 5. Cotizaciones urgentes
+      // Cotizaciones urgentes
       const urgentes = cotizaciones.filter(q => {
         if (!['Enviada', 'En negociación'].includes(q.estado)) return false;
         if (!q.vencimiento) return false;
         
         const venc = new Date(q.vencimiento);
-        const diffDays = Math.ceil((venc - now) / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 2;
+        const diasHastaVencimiento = Math.floor((venc - now) / (1000 * 60 * 60 * 24));
+        return diasHastaVencimiento <= 3 && diasHastaVencimiento >= 0;
       });
 
-      // 6. Borradores antiguos
+      // Borradores antiguos
+      const DIAS_BORRADOR_ANTIGUO = 7;
       const borradoresAntiguos = cotizaciones.filter(q => {
         if (q.estado !== 'Borrador') return false;
         if (!q.fechaCreacion) return false;
         
         const fecha = new Date(q.fechaCreacion);
-        const diffDays = Math.ceil((now - fecha) / (1000 * 60 * 60 * 24));
-        return diffDays > 7;
+        const diasDesdeCreacion = Math.floor((now - fecha) / (1000 * 60 * 60 * 24));
+        return diasDesdeCreacion > DIAS_BORRADOR_ANTIGUO;
       });
 
       return {
-        cotizaciones: cotizaciones.slice(0, 50), // Últimas 50 para no saturar
-        totalCotizaciones, // NUEVO: número real total
-        clientes,
-        productos,
-        tendencias: {
-          esteMes: {
-            total: cotizacionesEsteMes.length,
-            aprobadas: cotizacionesEsteMes.filter(q => q.estado === 'Aprobada').length,
-            monto: cotizacionesEsteMes.filter(q => q.estado === 'Aprobada').reduce((sum, q) => sum + q.total, 0),
-            tasaConversion: cotizacionesEsteMes.length > 0
-              ? (cotizacionesEsteMes.filter(q => q.estado === 'Aprobada').length / cotizacionesEsteMes.length * 100).toFixed(1)
-              : 0
-          },
-          mesAnterior: {
-            total: cotizacionesMesAnterior.length,
-            aprobadas: cotizacionesMesAnterior.filter(q => q.estado === 'Aprobada').length,
-            monto: cotizacionesMesAnterior.filter(q => q.estado === 'Aprobada').reduce((sum, q) => sum + q.total, 0),
-            tasaConversion: cotizacionesMesAnterior.length > 0
-              ? (cotizacionesMesAnterior.filter(q => q.estado === 'Aprobada').length / cotizacionesMesAnterior.length * 100).toFixed(1)
-              : 0
-          },
+        cotizaciones: {
+          todas: todasLasCotizaciones,
+          totalCotizaciones,
+          aprobadas,
+          rechazadas,
+          enNegociacion,
+          enviadas,
+          borradores,
+          totalVentas,
+          tasaConversion: parseFloat(tasaConversion),
+          ticketPromedio,
+          esteMes: cotizacionesEsteMes.length,
+          mesAnterior: cotizacionesMesAnterior.length,
           porDiaSemana: Object.entries(cotizacionesPorDia).map(([dia, total]) => ({
             dia,
             total,
             aprobadas: aprobadasPorDia[dia],
             tasaConversion: total > 0 ? (aprobadasPorDia[dia] / total * 100).toFixed(1) : 0
           }))
+        },
+        clientes: {
+          total: clientes.length,
+          lista: clientes.map(c => ({
+            nombre: c.nombre,
+            email: c.email,
+            tipo: c.tipo
+          }))
+        },
+        productos: {
+          total: productos.length,
+          analisis: productosArray
         },
         alertas: {
           urgentes: urgentes.length,
@@ -350,10 +353,9 @@ const InsightsPanelPro = ({ db }) => {
       const cacheValid = await isCacheValid();
       if (cacheValid) {
         const loaded = loadFromCache();
-        if (loaded) return; // Salir si cargó exitosamente desde caché
+        if (loaded) return;
       }
     } else {
-      // Si es regeneración forzada, limpiar caché primero
       clearCache();
     }
 
@@ -368,258 +370,280 @@ const InsightsPanelPro = ({ db }) => {
         throw new Error('No se pudieron obtener los datos');
       }
 
-      console.log('🤖 Generando insights con IA...');
+      console.log('🤖 Generando insights con IA (modo seguro)...');
 
-      // 2. Llamar a OpenAI con TODOS los datos
-      const openai = new OpenAI({
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-        dangerouslyAllowBrowser: true
+      // 2. Obtener token de autenticación de Firebase
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      const idToken = await currentUser.getIdToken();
+
+      // 3. Llamar a Vercel Serverless Function (SEGURO)
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ completeData })
       });
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `Eres un analista de negocios experto en CPQ y ventas B2B. 
-Analiza los datos proporcionados y genera insights ESPECÍFICOS, ACCIONABLES y PROFUNDOS.
-No hagas afirmaciones genéricas. Usa números concretos y nombres específicos.
-Identifica patrones ocultos, tendencias y oportunidades que el usuario podría no haber notado.
-Sé directo y enfócate en insights que generen valor real.
-Responde en español y en formato JSON válido.`
-          },
-          {
-            role: "user",
-            content: `Analiza profundamente estos datos de mi negocio CPQ y genera insights valiosos:
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al generar insights');
+      }
 
-${JSON.stringify(completeData, null, 2)}
+      const { insights: generatedInsights, metadata } = await response.json();
 
-Genera un JSON con insights específicos y accionables:
-{
-  "resumenEjecutivo": "Un párrafo con los hallazgos MÁS importantes y específicos",
-  "insightsDescriptivos": [
-    "Insight específico con números y nombres (ej: TechCorp rechazó 3 de 5 cotizaciones...)",
-    "Otro insight específico..."
-  ],
-  "insightsPredictivos": [
-    "Predicción específica basada en datos históricos",
-    "Otra predicción..."
-  ],
-  "insightsPrescriptivos": [
-    "Acción específica y concreta que el usuario debe tomar",
-    "Otra acción específica..."
-  ],
-  "alertasCriticas": [
-    "Alerta urgente con datos específicos",
-    "Otra alerta..."
-  ],
-  "oportunidadesOcultas": [
-    "Oportunidad que el usuario podría no haber visto",
-    "Otra oportunidad..."
-  ]
-}`
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 2000
-      });
+      console.log('✅ Insights generados exitosamente');
+      console.log(`📊 Tokens usados: ${metadata.tokensUsed}`);
+      console.log(`💰 Costo: $${metadata.cost}`);
+      console.log(`⏱️ Duración: ${metadata.duration}`);
 
-      const responseText = completion.choices[0].message.content.trim();
-      const jsonText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      const parsedInsights = JSON.parse(jsonText);
+      // 4. Guardar en caché
+      const quoteCount = completeData.cotizaciones.totalCotizaciones;
+      saveToCache(generatedInsights, quoteCount);
       
-      setInsights(parsedInsights);
-      
-      // Guardar en caché con el número REAL total de cotizaciones
-      saveToCache(parsedInsights, completeData.totalCotizaciones);
-      
-      console.log('✅ Insights generados y guardados en caché');
+      setInsights(generatedInsights);
+      setLoading(false);
 
-    } catch (err) {
-      console.error('Error generando insights:', err);
-      setError('Error al generar insights. Por favor intenta de nuevo.');
-    } finally {
+    } catch (error) {
+      console.error('❌ Error:', error);
+      setError(error.message || 'Error al generar insights');
       setLoading(false);
     }
   };
 
+  // Cargar insights al montar
   useEffect(() => {
-    generateInsights();
-  }, []);
+    if (user?.uid) {
+      const attemptLoad = async () => {
+        const cacheValid = await isCacheValid();
+        if (cacheValid) {
+          loadFromCache();
+        }
+      };
+      attemptLoad();
+    }
+  }, [user]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <Sparkles className="h-12 w-12 text-primary animate-pulse" />
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Analizando Datos Completos...</h3>
-          <p className="text-sm text-muted-foreground">Esto puede tomar unos segundos</p>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return null;
   }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <AlertTriangle className="h-12 w-12 text-destructive" />
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Error</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button onClick={generateInsights} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!insights) return null;
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="space-y-6">
+      {/* Header con acciones */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Insights Profundos con IA</h2>
-            {cacheInfo && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {cacheInfo.fromCache ? (
-                  <>💾 Desde caché • Generado hace {cacheInfo.age}</>
-                ) : (
-                  <>✨ Recién generado</>
-                )}
-              </p>
+          <h2 className="text-2xl font-bold">Insights con IA</h2>
+        </div>
+        <div className="flex gap-2">
+          {cacheInfo && (
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
+              {cacheInfo.fromCache ? '💾' : '✨'} {cacheInfo.age}
+            </span>
+          )}
+          <Button
+            onClick={() => generateInsights(false)}
+            disabled={loading}
+            variant="default"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generar Insights
+              </>
+            )}
+          </Button>
+          {insights && (
+            <Button
+              onClick={() => generateInsights(true)}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
+          <p className="font-semibold">Error</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="space-y-4">
+          <div className="h-32 bg-muted animate-pulse rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-48 bg-muted animate-pulse rounded-lg" />
+            <div className="h-48 bg-muted animate-pulse rounded-lg" />
+          </div>
+        </div>
+      )}
+
+      {/* Insights */}
+      {!loading && insights && (
+        <div className="space-y-6">
+          {/* Resumen Ejecutivo */}
+          {insights.resumenEjecutivo && (
+            <div className="bg-primary/5 border-l-4 border-primary p-6 rounded-lg">
+              <div className="flex items-start gap-3">
+                <BarChart3 className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Resumen Ejecutivo</h3>
+                  <p className="text-foreground/90 leading-relaxed">{insights.resumenEjecutivo}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Insights Descriptivos */}
+          {insights.insightsDescriptivos && insights.insightsDescriptivos.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Análisis Descriptivo
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {insights.insightsDescriptivos.map((insight, index) => (
+                  <InsightCard key={index} insight={insight} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Insights Predictivos */}
+          {insights.insightsPredictivos && insights.insightsPredictivos.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Predicciones y Tendencias
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {insights.insightsPredictivos.map((insight, index) => (
+                  <InsightCard key={index} insight={insight} isPredictive />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recomendaciones */}
+          {insights.recomendaciones && insights.recomendaciones.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <Lightbulb className="h-5 w-5" />
+                Recomendaciones
+              </h3>
+              <div className="space-y-3">
+                {insights.recomendaciones.map((rec, index) => (
+                  <RecommendationCard key={index} recommendation={rec} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && !insights && !error && (
+        <div className="text-center py-12">
+          <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Genera Insights con IA</h3>
+          <p className="text-muted-foreground mb-4">
+            Analiza tus datos de negocio y obtén recomendaciones personalizadas
+          </p>
+          <Button onClick={() => generateInsights(false)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Generar Insights
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Componente para mostrar un insight individual
+const InsightCard = ({ insight, isPredictive = false }) => {
+  const getIcon = () => {
+    if (insight.tipo === 'oportunidad') return <TrendingUp className="h-5 w-5 text-green-500" />;
+    if (insight.tipo === 'advertencia') return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    return <Lightbulb className="h-5 w-5 text-blue-500" />;
+  };
+
+  const getBorderColor = () => {
+    if (insight.tipo === 'oportunidad') return 'border-green-500';
+    if (insight.tipo === 'advertencia') return 'border-yellow-500';
+    return 'border-blue-500';
+  };
+
+  return (
+    <div className={`bg-card border-l-4 ${getBorderColor()} p-4 rounded-lg`}>
+      <div className="flex items-start gap-3">
+        {getIcon()}
+        <div className="flex-1">
+          <h4 className="font-semibold mb-2">{insight.titulo}</h4>
+          <p className="text-sm text-muted-foreground mb-2">{insight.descripcion}</p>
+          <div className="flex gap-2 text-xs">
+            {insight.impacto && (
+              <span className="px-2 py-1 bg-muted rounded">
+                Impacto: {insight.impacto}
+              </span>
+            )}
+            {insight.confianza && (
+              <span className="px-2 py-1 bg-muted rounded">
+                Confianza: {insight.confianza}
+              </span>
             )}
           </div>
         </div>
-        <Button 
-          onClick={() => generateInsights(true)} 
-          variant="outline" 
-          size="sm"
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Generando...' : 'Regenerar'}
-        </Button>
       </div>
+    </div>
+  );
+};
 
-      {/* Resumen Ejecutivo */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6 shadow-lg">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-            <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+// Componente para mostrar una recomendación
+const RecommendationCard = ({ recommendation }) => {
+  const getPriorityColor = () => {
+    if (recommendation.prioridad === 'alta') return 'bg-red-500/10 border-red-500';
+    if (recommendation.prioridad === 'media') return 'bg-yellow-500/10 border-yellow-500';
+    return 'bg-blue-500/10 border-blue-500';
+  };
+
+  return (
+    <div className={`border-l-4 ${getPriorityColor()} p-4 rounded-lg`}>
+      <div className="flex items-start gap-3">
+        <Lightbulb className="h-5 w-5 mt-1 flex-shrink-0" />
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h4 className="font-semibold">{recommendation.titulo}</h4>
+            <span className="text-xs px-2 py-1 bg-muted rounded capitalize">
+              {recommendation.prioridad}
+            </span>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-lg mb-2 text-foreground">📊 Resumen Ejecutivo</h3>
-            <p className="text-foreground/90 leading-relaxed text-base">{insights.resumenEjecutivo}</p>
-          </div>
+          <p className="text-sm text-muted-foreground mb-2">{recommendation.descripcion}</p>
+          {recommendation.impactoEstimado && (
+            <p className="text-xs text-muted-foreground italic">
+              💡 {recommendation.impactoEstimado}
+            </p>
+          )}
         </div>
-      </div>
-
-      {/* Insights Descriptivos */}
-      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 rounded-xl border border-purple-200 dark:border-purple-800 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-          <h3 className="font-bold text-lg text-foreground">📈 ¿Qué está pasando?</h3>
-        </div>
-        <ul className="space-y-3">
-          {insights.insightsDescriptivos.map((insight, i) => (
-            <li key={i} className="flex items-start gap-3 text-foreground/80">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-sm font-semibold text-purple-600 dark:text-purple-400">
-                {i + 1}
-              </span>
-              <span className="flex-1">{insight}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Grid de 2 columnas */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Insights Predictivos */}
-        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 rounded-xl border border-cyan-200 dark:border-cyan-800 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">🔮</span>
-            <h3 className="font-bold text-lg text-foreground">¿Qué puede pasar?</h3>
-          </div>
-          <ul className="space-y-2">
-            {insights.insightsPredictivos.map((insight, i) => (
-              <li key={i} className="flex items-start gap-2 text-foreground/80">
-                <span className="text-cyan-600 dark:text-cyan-400 mt-1">→</span>
-                <span className="flex-1">{insight}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Alertas Críticas */}
-        <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl border border-red-200 dark:border-red-800 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-            <h3 className="font-bold text-lg text-foreground">⚠️ Alertas Críticas</h3>
-          </div>
-          <ul className="space-y-2">
-            {insights.alertasCriticas.map((alerta, i) => (
-              <li key={i} className="flex items-start gap-2 text-foreground/80">
-                <span className="text-red-600 dark:text-red-400 mt-1">!</span>
-                <span className="flex-1">{alerta}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Insights Prescriptivos */}
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-xl border border-green-200 dark:border-green-800 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Lightbulb className="h-5 w-5 text-green-600 dark:text-green-400" />
-          <h3 className="font-bold text-lg text-foreground">🎯 Acciones Recomendadas</h3>
-        </div>
-        <ul className="space-y-3">
-          {insights.insightsPrescriptivos.map((accion, i) => (
-            <li key={i} className="flex items-start gap-3 text-foreground/80">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-sm font-semibold text-green-600 dark:text-green-400">
-                ✓
-              </span>
-              <span className="flex-1">{accion}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Oportunidades Ocultas */}
-      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-xl border border-amber-200 dark:border-amber-800 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">💎</span>
-          <h3 className="font-bold text-lg text-foreground">Oportunidades Ocultas</h3>
-        </div>
-        <ul className="space-y-2">
-          {insights.oportunidadesOcultas.map((oportunidad, i) => (
-            <li key={i} className="flex items-start gap-2 text-foreground/80">
-              <span className="text-amber-600 dark:text-amber-400 mt-1">★</span>
-              <span className="flex-1">{oportunidad}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t">
-        <div className="text-xs text-muted-foreground">
-          💡 Análisis profundo generado por IA • {insights.insightsDescriptivos.length + insights.insightsPredictivos.length + insights.insightsPrescriptivos.length} insights
-        </div>
-        {cacheInfo && cacheInfo.fromCache && (
-          <button
-            onClick={() => generateInsights(true)}
-            className="text-xs text-primary hover:underline"
-          >
-            Forzar actualización
-          </button>
-        )}
       </div>
     </div>
   );

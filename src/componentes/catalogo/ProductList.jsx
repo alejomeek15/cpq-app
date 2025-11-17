@@ -25,7 +25,7 @@ import { Badge } from '@/ui/badge.jsx';
 import { DataTable } from '@/ui/DataTable.jsx';
 import { createColumns } from './columns.jsx';
 
-const ProductList = ({ db, onProductClick, onAddNewProduct }) => {
+const ProductList = ({ db, onProductClick, onEditProduct, onAddNewProduct }) => {
   const { user } = useAuth();
 
   const [products, setProducts] = useState([]);
@@ -102,9 +102,9 @@ const ProductList = ({ db, onProductClick, onAddNewProduct }) => {
   };
 
   // NUEVO: Editar producto
-  const handleEditProduct = (product) => {
-    if (onProductClick) {
-      onProductClick(product); // Llamar la función original para editar
+  const handleEditProductClick = (product) => {
+    if (onEditProduct) {
+      onEditProduct(product); // Llamar la función del padre
     }
   };
 
@@ -164,11 +164,11 @@ const ProductList = ({ db, onProductClick, onAddNewProduct }) => {
   const columns = useMemo(() => 
     createColumns(
       handleProductClick,
-      handleEditProduct,
+      handleEditProductClick,
       handleDuplicateProduct,
       handleDeleteProduct
     ), 
-    []
+    [onEditProduct]
   );
 
   // Filtrar y ordenar productos
@@ -244,7 +244,7 @@ const ProductList = ({ db, onProductClick, onAddNewProduct }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Catálogo de Productos</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Catálogo de Productos</h1>
           <p className="text-muted-foreground mt-1">
             {filteredAndSortedProducts.length} de {products.length} productos
           </p>
@@ -410,7 +410,7 @@ const ProductList = ({ db, onProductClick, onAddNewProduct }) => {
               key={product.id}
               product={product}
               onClick={() => handleProductClick(product)}
-              onEdit={handleEditProduct}
+              onEdit={handleEditProductClick}
               onDuplicate={handleDuplicateProduct}
               onDelete={handleDeleteProduct}
             />
@@ -438,7 +438,7 @@ const ProductList = ({ db, onProductClick, onAddNewProduct }) => {
         product={selectedProduct}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
-        onEdit={handleEditProduct}
+        onEdit={handleEditProductClick}
         onDuplicate={handleDuplicateProduct}
         onDelete={handleDeleteProduct}
       />
