@@ -108,16 +108,8 @@ IMPORTANTE:
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
-      // Metadata para Braintrust (solo strings permitidos)
-      metadata: {
-        userId: userId,
-        endpoint: 'generate-insights',
-        totalCotizaciones: String(completeData.cotizaciones?.totalCotizaciones || 0),
-        totalVentas: String(completeData.cotizaciones?.totalVentas || 0),
-        tasaConversion: String(completeData.cotizaciones?.tasaConversion || 0),
-        inputSizeKB: String((dataSize / 1024).toFixed(2))
-      }
+      temperature: 0.7
+      // Braintrust captura automáticamente todo sin necesidad de metadata explícita
     });
 
     const duration = Date.now() - startTime;
