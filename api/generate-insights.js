@@ -27,13 +27,6 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    
-    // TODO: Validar token de Firebase (opcional pero recomendado)
-    // const admin = require('firebase-admin');
-    // const decodedToken = await admin.auth().verifyIdToken(token);
-    // const userId = decodedToken.uid;
-    
-    // Por ahora, usar un userId básico del token
     const userId = token.substring(0, 10);
 
     // 2. Obtener datos del request
@@ -45,7 +38,7 @@ export default async function handler(req, res) {
 
     // 3. Validar tamaño de datos
     const dataSize = JSON.stringify(completeData).length;
-    const MAX_SIZE = 500000; // 500KB
+    const MAX_SIZE = 500000;
     
     if (dataSize > MAX_SIZE) {
       return res.status(413).json({ 
@@ -58,8 +51,7 @@ export default async function handler(req, res) {
     const startTime = Date.now();
     console.log('🤖 Generando insights con IA...');
 
-    // 4. Llamar a OpenAI
-    // ✨ wrapOpenAI captura AUTOMÁTICAMENTE este call en Braintrust
+    // 4. Llamar a OpenAI (automáticamente tracked por Braintrust)
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -117,30 +109,23 @@ IMPORTANTE:
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      // Metadata adicional para Braintrust
+      // Metadata para Braintrust (solo strings permitidos)
       metadata: {
         userId: userId,
         endpoint: 'generate-insights',
-        dataStats: {
-          totalCotizaciones: completeData.cotizaciones?.totalCotizaciones || 0,
-          totalVentas: completeData.cotizaciones?.totalVentas || 0,
-          tasaConversion: completeData.cotizaciones?.tasaConversion || 0,
-          inputSizeKB: (dataSize / 1024).toFixed(2)
-        }
+        totalCotizaciones: String(completeData.cotizaciones?.totalCotizaciones || 0),
+        totalVentas: String(completeData.cotizaciones?.totalVentas || 0),
+        tasaConversion: String(completeData.cotizaciones?.tasaConversion || 0),
+        inputSizeKB: String((dataSize / 1024).toFixed(2))
       }
     });
 
     const duration = Date.now() - startTime;
-
-    // 5. Parsear respuesta
     const insightsText = completion.choices[0].message.content;
     const insights = JSON.parse(insightsText);
-
-    // 6. Calcular métricas
     const tokensUsed = completion.usage.total_tokens;
     const cost = (tokensUsed * 0.00002).toFixed(4);
 
-    // 7. Log para debugging local
     console.log('✅ Insights generados exitosamente');
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -149,15 +134,9 @@ IMPORTANTE:
       cost: cost,
       duration: `${duration}ms`,
       dataSize: `${(dataSize / 1024).toFixed(2)}KB`,
-      insightsGenerated: {
-        descriptivos: insights.insightsDescriptivos?.length || 0,
-        predictivos: insights.insightsPredictivos?.length || 0,
-        recomendaciones: insights.recomendaciones?.length || 0
-      },
       braintrustTracked: true
     }));
 
-    // 8. Retornar respuesta
     return res.status(200).json({
       success: true,
       insights,
@@ -174,7 +153,6 @@ IMPORTANTE:
   } catch (error) {
     console.error('❌ Error generando insights:', error);
     
-    // Manejar errores específicos de OpenAI
     if (error.response?.status === 429) {
       return res.status(429).json({ 
         error: 'Límite de rate excedido. Intenta de nuevo en unos momentos.' 
