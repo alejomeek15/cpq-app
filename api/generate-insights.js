@@ -3,7 +3,14 @@
 // Con integración automática de Braintrust usando wrapOpenAI
 
 import { OpenAI } from 'openai';
-import { wrapOpenAI } from 'braintrust';
+import { wrapOpenAI, initLogger } from 'braintrust';
+
+// Inicializar el logger de Braintrust
+// Esto crea el proyecto en Braintrust si no existe
+const logger = initLogger({
+  projectName: 'cpq-insights',
+  apiKey: process.env.BRAINTRUST_API_KEY,
+});
 
 // Inicializar OpenAI con wrapper de Braintrust
 // wrapOpenAI() captura AUTOMÁTICAMENTE todas las llamadas como traces
@@ -109,7 +116,6 @@ IMPORTANTE:
       ],
       response_format: { type: "json_object" },
       temperature: 0.7
-      // Braintrust captura automáticamente todo sin necesidad de metadata explícita
     });
 
     const duration = Date.now() - startTime;
