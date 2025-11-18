@@ -1,7 +1,17 @@
 // api/generate-insights.js
 // Vercel Serverless Function para generar insights de forma SEGURA
+// Con integración automática de Braintrust usando wrapOpenAI
 
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
+import { wrapOpenAI } from 'braintrust';
+
+// Inicializar OpenAI con wrapper de Braintrust
+// wrapOpenAI() captura AUTOMÁTICAMENTE todas las llamadas como traces
+const openai = wrapOpenAI(
+  new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+);
 
 export default async function handler(req, res) {
   // Solo permitir POST
@@ -22,6 +32,9 @@ export default async function handler(req, res) {
     // const admin = require('firebase-admin');
     // const decodedToken = await admin.auth().verifyIdToken(token);
     // const userId = decodedToken.uid;
+    
+    // Por ahora, usar un userId básico del token
+    const userId = token.substring(0, 10);
 
     // 2. Obtener datos del request
     const { completeData } = req.body;
@@ -42,15 +55,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Inicializar OpenAI de forma SEGURA
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
-
     const startTime = Date.now();
     console.log('🤖 Generando insights con IA...');
 
-    // 5. Llamar a OpenAI
+    // 4. Llamar a OpenAI
+    // ✨ wrapOpenAI captura AUTOMÁTICAMENTE este call en Braintrust
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -107,23 +116,45 @@ IMPORTANTE:
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7
+      temperature: 0.7,
+      // Metadata adicional para Braintrust
+      metadata: {
+        userId: userId,
+        endpoint: 'generate-insights',
+        dataStats: {
+          totalCotizaciones: completeData.cotizaciones?.totalCotizaciones || 0,
+          totalVentas: completeData.cotizaciones?.totalVentas || 0,
+          tasaConversion: completeData.cotizaciones?.tasaConversion || 0,
+          inputSizeKB: (dataSize / 1024).toFixed(2)
+        }
+      }
     });
 
     const duration = Date.now() - startTime;
 
-    // 6. Parsear respuesta
+    // 5. Parsear respuesta
     const insightsText = completion.choices[0].message.content;
     const insights = JSON.parse(insightsText);
 
-    // 7. Log para debugging y monitoreo
+    // 6. Calcular métricas
+    const tokensUsed = completion.usage.total_tokens;
+    const cost = (tokensUsed * 0.00002).toFixed(4);
+
+    // 7. Log para debugging local
     console.log('✅ Insights generados exitosamente');
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
-      tokensUsed: completion.usage.total_tokens,
-      cost: (completion.usage.total_tokens * 0.00002).toFixed(4),
+      userId: userId,
+      tokensUsed: tokensUsed,
+      cost: cost,
       duration: `${duration}ms`,
-      dataSize: `${(dataSize / 1024).toFixed(2)}KB`
+      dataSize: `${(dataSize / 1024).toFixed(2)}KB`,
+      insightsGenerated: {
+        descriptivos: insights.insightsDescriptivos?.length || 0,
+        predictivos: insights.insightsPredictivos?.length || 0,
+        recomendaciones: insights.recomendaciones?.length || 0
+      },
+      braintrustTracked: true
     }));
 
     // 8. Retornar respuesta
@@ -132,10 +163,11 @@ IMPORTANTE:
       insights,
       metadata: {
         model: completion.model,
-        tokensUsed: completion.usage.total_tokens,
-        cost: (completion.usage.total_tokens * 0.00002).toFixed(4),
+        tokensUsed: tokensUsed,
+        cost: cost,
         duration: `${duration}ms`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        braintrustTracked: true
       }
     });
 

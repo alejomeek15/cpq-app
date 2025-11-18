@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "braintrust": "^0.4.9",
     "openai": "^4.20.0"
   }
 }
