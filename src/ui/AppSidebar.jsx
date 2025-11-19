@@ -12,9 +12,13 @@ import {
   SidebarMenuButton,
 } from './sidebar.jsx';
 import { useSidebar } from './sidebar.jsx';
+import { UserDropdown } from './UserDropdown.jsx';
+import { useAuth } from '@/context/useAuth';
+import { getAuth, signOut } from 'firebase/auth';
 
 export const AppSidebar = ({ navigate, route }) => {
   const { state } = useSidebar();
+  const { user } = useAuth();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -23,6 +27,16 @@ export const AppSidebar = ({ navigate, route }) => {
     { id: 'catalog', label: 'Catálogo', icon: BookOpen },
     { id: 'settings', label: 'Configuración', icon: Settings },
   ];
+
+  const handleLogout = async () => {
+    try {
+      const auth = getAuth();
+      await signOut(auth);
+      // El AuthContext manejará la actualización del estado
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -47,7 +61,6 @@ export const AppSidebar = ({ navigate, route }) => {
 
       <SidebarContent>
         <SidebarGroup>
-          {/* SidebarGroupLabel removed */}
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.id}>
@@ -65,8 +78,8 @@ export const AppSidebar = ({ navigate, route }) => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        {/* Footer vacío - puedes agregar contenido después */}
+      <SidebarFooter className="p-2">
+        <UserDropdown user={user} onLogout={handleLogout} />
       </SidebarFooter>
     </Sidebar>
   );

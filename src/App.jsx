@@ -4,7 +4,6 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 import { ThemeProvider } from '@/ui/theme-provider.jsx';
-import { ModeToggle } from '@/ui/mode-toggle.jsx';
 import { SidebarTrigger } from '@/ui/sidebar.jsx';
 import { SidebarProvider } from '@/ui/sidebar.jsx';
 import { AppSidebar } from '@/ui/AppSidebar.jsx';
@@ -104,9 +103,8 @@ export default function App() {
         <AppSidebar navigate={handleNavigate} route={route} />
 
         <main className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 min-w-0">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-start items-center mb-8">
             <SidebarTrigger />
-            <ModeToggle />
           </div>
           
           {renderRoute()}
