@@ -19,13 +19,11 @@ import {
 } from "@/ui/table.jsx";
 
 import { Button } from "@/ui/button.jsx";
-// 'Input' ya no es necesario aquí
 import { Trash2 } from 'lucide-react';
 
-// --- ¡CAMBIO! 'filterColumn' se ha eliminado de las props ---
 export function DataTable({ columns, data, onDeleteSelectedItems }) {
   const [sorting, setSorting] = React.useState([]);
-  const [columnFilters, setColumnFilters] = React.useState([]); // Esto se queda, es inofensivo
+  const [columnFilters, setColumnFilters] = React.useState([]);
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
@@ -34,7 +32,7 @@ export function DataTable({ columns, data, onDeleteSelectedItems }) {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(), // Se queda para la selección/paginación
+    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
@@ -50,10 +48,7 @@ export function DataTable({ columns, data, onDeleteSelectedItems }) {
   return (
     <div>
       {/* --- Barra de Herramientas Superior (Filtro y Acciones) --- */}
-      <div className="flex items-center justify-end py-4"> {/* ¡CAMBIO! se quita justify-between */}
-        
-        {/* --- ¡CAMBIO! El <Input> ha sido eliminado de este archivo --- */}
-
+      <div className="flex items-center justify-end py-4">
         {selectedRowCount > 0 && (
           <Button
             variant="destructive"
@@ -66,13 +61,13 @@ export function DataTable({ columns, data, onDeleteSelectedItems }) {
       </div>
 
       {/* --- La Tabla --- */}
-      <div className="rounded-md border border-slate-700">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-slate-700 hover:bg-slate-800/50">
+              <TableRow key={headerGroup.id} className="border-b hover:bg-muted/50">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="align-middle">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -90,10 +85,17 @@ export function DataTable({ columns, data, onDeleteSelectedItems }) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="border-slate-700 data-[state=selected]:bg-slate-800"
+                  className="border-b data-[state=selected]:bg-muted h-16"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell 
+                      key={cell.id} 
+                      className={`align-middle ${
+                        row.getIsSelected() 
+                          ? '[&_*]:!text-foreground [&_button[role=checkbox]]:!border-foreground [&_button[role=checkbox]]:!bg-background' 
+                          : ''
+                      }`}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -112,7 +114,7 @@ export function DataTable({ columns, data, onDeleteSelectedItems }) {
 
       {/* --- Controles de Paginación y Conteo de Selección --- */}
       <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex-1 text-sm text-slate-400">
+        <div className="flex-1 text-sm text-muted-foreground">
           {selectedRowCount} de {table.getFilteredRowModel().rows.length} fila(s) seleccionada(s).
         </div>
         <div className="space-x-2">

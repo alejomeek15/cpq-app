@@ -1,19 +1,17 @@
-// --- AppSidebar.jsx (Updated - ModeToggle Removed) ---
+// --- AppSidebar.jsx (Updated) ---
 import React from 'react';
 import { LayoutDashboard, Users, FileText, Settings, BookOpen } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-  SidebarFooter, // Keep Footer or remove if empty
+  SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
 } from './sidebar.jsx';
 import { useSidebar } from './sidebar.jsx';
-// ModeToggle import removed
 
 export const AppSidebar = ({ navigate, route }) => {
   const { state } = useSidebar();
@@ -31,14 +29,14 @@ export const AppSidebar = ({ navigate, route }) => {
       <SidebarHeader className="flex items-center justify-between p-2">
         <div className="relative h-7 w-full flex items-center justify-center">
           <span
-            className={`font-bold text-lg whitespace-nowrap transition-opacity duration-300 ${
+            className={`font-bold text-xl whitespace-nowrap transition-opacity duration-300 ${
               state === 'expanded' ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            Cepequ
+            CePeQu
           </span>
           <span
-            className={`font-bold text-lg absolute left-1/2 -translate-x-1/2 transition-opacity duration-300 ${
+            className={`font-bold text-xl absolute left-1/2 -translate-x-1/2 transition-opacity duration-300 ${
               state === 'collapsed' ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -49,13 +47,14 @@ export const AppSidebar = ({ navigate, route }) => {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>General</SidebarGroupLabel>
+          {/* SidebarGroupLabel removed */}
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton
                   onClick={() => navigate(item.id)}
                   isActive={route === item.id}
+                  className="text-base"
                 >
                   <item.icon className="size-4" />
                   <span>{item.label}</span>
@@ -66,9 +65,8 @@ export const AppSidebar = ({ navigate, route }) => {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* ModeToggle removed from here */}
       <SidebarFooter>
-        {/* Footer is now empty, you can add other items later or remove the tag */}
+        {/* Footer vacío - puedes agregar contenido después */}
       </SidebarFooter>
     </Sidebar>
   );
