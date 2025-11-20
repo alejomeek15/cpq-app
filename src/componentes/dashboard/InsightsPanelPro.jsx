@@ -566,13 +566,9 @@ const InsightsPanelPro = ({ db }) => {
         <div className="text-center py-12">
           <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Genera Insights con IA</h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground">
             Analiza tus datos de negocio y obtén recomendaciones personalizadas
           </p>
-          <Button onClick={() => generateInsights(false)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generar Insights
-          </Button>
         </div>
       )}
     </div>
