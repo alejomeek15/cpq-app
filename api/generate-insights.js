@@ -64,72 +64,132 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "system",
-          content: `Eres un analista de negocios SENIOR, especialista en optimización de embudos de venta (funnels) y análisis de catálogos de productos para negocios B2B.
-Tu misión es encontrar "dinero sobre la mesa": oportunidades no evidentes, productos problemáticos y palancas de crecimiento.
-Analiza los datos proporcionados para generar insights CUANTITATIVOS, ESPECÍFICOS y ACCIONABLES.
-Usa siempre nombres de productos y clientes cuando sea relevante. No uses términos genéricos.
-Tu análisis debe ser profundo, como si estuvieras presentando tus hallazgos al CEO de la empresa.
-Responde SIEMPRE en español y en formato JSON válido, sin excepción.`
+          content: `Eres un analista de negocios experto en CPQ y ventas B2B.
+Analiza los datos proporcionados y genera insights ESPECÍFICOS, ACCIONABLES y PROFUNDOS.
+
+ÁREAS DE ANÁLISIS PRIORITARIAS:
+1. **Análisis de Productos**:
+   - Productos más cotizados vs productos más aprobados
+   - Productos con mayor tasa de rechazo
+   - Tasa de conversión por producto (aprobadas/total cotizaciones × 100)
+   - Productos con mejor/peor rendimiento
+   - Valor promedio de cotización por producto
+
+2. **Análisis de Clientes**:
+   - Clientes más activos en cotizaciones
+   - Clientes con mayor tasa de aprobación
+   - Clientes que más rechazan cotizaciones
+   - Patrones de comportamiento por tipo de cliente
+
+3. **Métricas de Conversión**:
+   - Tasa de aprobación global
+   - Tasa de rechazo global
+   - Tiempo promedio de respuesta
+   - Factores que correlacionan con aprobación/rechazo
+
+4. **Análisis Temporal**:
+   - Tendencias en el tiempo
+   - Estacionalidad
+   - Cambios en comportamiento
+
+5. **Análisis de Pricing**:
+   - Descuentos promedio
+   - Márgenes por producto
+   - Sensibilidad al precio
+
+REGLAS IMPORTANTES:
+- NO hagas afirmaciones genéricas. Usa números concretos y nombres específicos.
+- Calcula tasas, porcentajes y promedios de los datos reales.
+- Identifica patrones ocultos que el usuario no vería en un dashboard simple.
+- Cada insight debe ser ACCIONABLE y tener impacto en el negocio.
+- Sé directo y enfócate en insights que generen valor real.
+- Responde en español y en formato JSON válido.`
         },
         {
           role: "user",
-          content: `A continuación se presentan los datos completos de mi negocio CPQ. Realiza un análisis exhaustivo siguiendo las áreas prioritarias que te detallo.
+          content: `Analiza profundamente estos datos de mi negocio CPQ y genera insights valiosos:
 
-**Contexto Clave de los Datos:**
-- 'cotizaciones': Contiene todas las cotizaciones, su estado (Aprobada, Rechazada, etc.) y su valor.
-- 'productos.analisis': Contiene un resumen pre-calculado del rendimiento de cada producto (veces cotizado, tasa de conversión, etc.). ¡Esta sección es crucial!
-- 'clientes': El listado de mis clientes.
-
-**Datos Completos:**
 ${JSON.stringify(completeData, null, 2)}
 
-**Áreas de Análisis Prioritarias (Enfócate en esto):**
+ANÁLISIS REQUERIDO:
+1. Identifica los productos más cotizados y su tasa de aprobación
+2. Encuentra productos con alta tasa de rechazo y posibles razones
+3. Calcula tasas de conversión por producto y cliente
+4. Detecta patrones de comportamiento y tendencias
+5. Identifica oportunidades de mejora basadas en los datos
 
-1.  **Análisis de Rendimiento de Productos (CRÍTICO):**
-    *   **Productos Estrella:** ¿Cuáles son los 2-3 productos más cotizados Y con la mejor tasa de conversión? Menciona sus nombres y números exactos.
-    *   **Productos Problemáticos:** ¿Qué productos se cotizan mucho pero tienen una tasa de conversión MUY BAJA? ¿Cuál podría ser la causa (precio, descripción, etc.)?
-    *   **Joyas Ocultas:** ¿Hay productos que se cotizan poco pero su tasa de conversión es altísima (ej. > 80%)? Podrían ser oportunidades de venta cruzada.
-    *   **Relación Valor/Aprobación:** ¿Los productos más caros tienen menor tasa de aprobación?
-
-2.  **Análisis del Embudo de Ventas (Funnel):**
-    *   ¿En qué estado del embudo ('Enviada', 'En negociación') se estancan más cotizaciones? ¿Qué porcentaje representan sobre el total?
-    *   ¿Cuál es el ticket promedio de las cotizaciones 'Aprobadas' vs las 'Rechazadas'? ¿Estamos perdiendo cotizaciones de alto valor?
-
-3.  **Análisis de Clientes:**
-    *   ¿Quiénes son los clientes que más cotizaciones aprobadas tienen (no solo en cantidad, sino en valor total)?
-    *   ¿Hay algún patrón de productos que compran los mejores clientes?
-
-**Formato de Salida Obligatorio (JSON):**
-Genera un JSON con los insights basados en tu análisis de las áreas prioritarias.
-
+Genera un JSON con insights específicos y accionables:
 {
-  "resumenEjecutivo": "Un párrafo con los 2-3 hallazgos MÁS impactantes y accionables de tu análisis. Debe incluir nombres y números.",
-  "insightsDescriptivos": [
+  "resumenEjecutivo": "Un párrafo con los hallazgos MÁS importantes, incluyendo métricas clave como tasas de aprobación, productos top, y principales oportunidades",
+
+  "insightsProductos": [
     {
-      "titulo": "Ej: 'Producto Estrella: El 'Servicio de Consultoría Avanzada' tiene un 75% de conversión'",
-      "descripcion": "Análisis detallado sobre un hallazgo descriptivo. Usa números de los datos para soportar tu afirmación. Por ejemplo, de X veces cotizado, se aprobó Y veces.",
+      "titulo": "Título específico sobre análisis de productos",
+      "descripcion": "Análisis detallado con nombres de productos, números de cotizaciones, tasas de aprobación/rechazo",
+      "metricas": {
+        "producto": "Nombre del producto",
+        "cotizaciones": 0,
+        "aprobadas": 0,
+        "rechazadas": 0,
+        "tasaAprobacion": "0%",
+        "valorPromedio": "$0"
+      },
       "impacto": "alto|medio|bajo",
       "tipo": "oportunidad|advertencia|informacion"
     }
   ],
-  "insightsPredictivos": [
+
+  "insightsDescriptivos": [
     {
-      "titulo": "Ej: 'Tendencia: Las cotizaciones con más de 5 ítems tienen menor probabilidad de cierre'",
-      "descripcion": "Basado en los datos, qué tendencia o predicción puedes hacer. Explica tu razonamiento.",
-      "confianza": "alta|media|baja",
-      "tipo": "oportunidad|advertencia"
+      "titulo": "Título específico del insight (ej: 'Clientes con mayor conversión')",
+      "descripcion": "Explicación detallada con números concretos, nombres específicos y métricas calculadas",
+      "impacto": "alto|medio|bajo",
+      "tipo": "oportunidad|advertencia|informacion"
     }
   ],
+
+  "insightsPredictivos": [
+    {
+      "titulo": "Predicción o tendencia específica basada en los datos",
+      "descripcion": "Explicación con evidencia de los datos actuales y proyección futura",
+      "confianza": "alta|media|baja",
+      "tipo": "oportunidad|advertencia|informacion"
+    }
+  ],
+
   "recomendaciones": [
     {
-      "titulo": "Ej: 'Acción: Promocionar las 'Joyas Ocultas' en las nuevas cotizaciones'",
-      "descripcion": "Una acción específica y clara que puedo tomar. Explica cómo implementarla y el porqué, basado en tus insights.",
+      "titulo": "Acción específica recomendada con contexto",
+      "descripcion": "Cómo implementarla, por qué es importante, y qué productos/clientes impacta",
       "prioridad": "alta|media|baja",
-      "impactoEstimado": "Descripción cualitativa del impacto esperado. Ej: 'Podría incrementar el ticket promedio en un 15%'."
+      "impactoEstimado": "Descripción cuantitativa del impacto esperado (ej: 'Aumentar aprobación en 15%')"
     }
-  ]
+  ],
+
+  "metricasClave": {
+    "tasaAprobacionGlobal": "0%",
+    "tasaRechazoGlobal": "0%",
+    "productoMasCotizado": "Nombre del producto",
+    "productoMejorConversion": "Nombre del producto",
+    "clienteMasActivo": "Nombre del cliente",
+    "valorPromedioQuote": "$0"
+  }
 }
-`
+
+EJEMPLOS DE INSIGHTS ESPERADOS:
+✅ "El producto 'Sistema ERP Premium' tiene 45 cotizaciones pero solo 12% de aprobación (5 aprobadas), mientras que 'CRM Basic' tiene 30 cotizaciones con 67% de aprobación (20 aprobadas)"
+✅ "Cliente 'Acme Corp' rechaza el 80% de sus cotizaciones (8 de 10), principalmente en productos de alto valor (>$50k)"
+✅ "Productos con descuentos >20% tienen 2.3x mayor tasa de aprobación que aquellos con <10% descuento"
+❌ "Algunos productos tienen mejor rendimiento" (muy genérico)
+❌ "Los clientes prefieren ciertos productos" (sin datos concretos)
+
+IMPORTANTE:
+- CALCULA tasas, porcentajes y promedios de los datos reales
+- Menciona NOMBRES ESPECÍFICOS de productos/clientes con sus números
+- Compara productos entre sí con métricas concretas
+- Identifica correlaciones (ej: precio vs aprobación, descuento vs conversión)
+- En "insightsProductos" incluye AL MENOS 3-5 productos con mejor/peor rendimiento
+- Cada insight debe tener números y ser ACCIONABLE`
         }
       ],
       response_format: { type: "json_object" },
