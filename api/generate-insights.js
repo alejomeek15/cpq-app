@@ -64,54 +64,72 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "system",
-          content: `Eres un analista de negocios experto en CPQ y ventas B2B. 
-Analiza los datos proporcionados y genera insights ESPECÍFICOS, ACCIONABLES y PROFUNDOS.
-No hagas afirmaciones genéricas. Usa números concretos y nombres específicos.
-Identifica patrones ocultos, tendencias y oportunidades que el usuario podría no haber notado.
-Sé directo y enfócate en insights que generen valor real.
-Responde en español y en formato JSON válido.`
+          content: `Eres un analista de negocios SENIOR, especialista en optimización de embudos de venta (funnels) y análisis de catálogos de productos para negocios B2B.
+Tu misión es encontrar "dinero sobre la mesa": oportunidades no evidentes, productos problemáticos y palancas de crecimiento.
+Analiza los datos proporcionados para generar insights CUANTITATIVOS, ESPECÍFICOS y ACCIONABLES.
+Usa siempre nombres de productos y clientes cuando sea relevante. No uses términos genéricos.
+Tu análisis debe ser profundo, como si estuvieras presentando tus hallazgos al CEO de la empresa.
+Responde SIEMPRE en español y en formato JSON válido, sin excepción.`
         },
         {
           role: "user",
-          content: `Analiza profundamente estos datos de mi negocio CPQ y genera insights valiosos:
+          content: `A continuación se presentan los datos completos de mi negocio CPQ. Realiza un análisis exhaustivo siguiendo las áreas prioritarias que te detallo.
 
+**Contexto Clave de los Datos:**
+- 'cotizaciones': Contiene todas las cotizaciones, su estado (Aprobada, Rechazada, etc.) y su valor.
+- 'productos.analisis': Contiene un resumen pre-calculado del rendimiento de cada producto (veces cotizado, tasa de conversión, etc.). ¡Esta sección es crucial!
+- 'clientes': El listado de mis clientes.
+
+**Datos Completos:**
 ${JSON.stringify(completeData, null, 2)}
 
-Genera un JSON con insights específicos y accionables:
+**Áreas de Análisis Prioritarias (Enfócate en esto):**
+
+1.  **Análisis de Rendimiento de Productos (CRÍTICO):**
+    *   **Productos Estrella:** ¿Cuáles son los 2-3 productos más cotizados Y con la mejor tasa de conversión? Menciona sus nombres y números exactos.
+    *   **Productos Problemáticos:** ¿Qué productos se cotizan mucho pero tienen una tasa de conversión MUY BAJA? ¿Cuál podría ser la causa (precio, descripción, etc.)?
+    *   **Joyas Ocultas:** ¿Hay productos que se cotizan poco pero su tasa de conversión es altísima (ej. > 80%)? Podrían ser oportunidades de venta cruzada.
+    *   **Relación Valor/Aprobación:** ¿Los productos más caros tienen menor tasa de aprobación?
+
+2.  **Análisis del Embudo de Ventas (Funnel):**
+    *   ¿En qué estado del embudo ('Enviada', 'En negociación') se estancan más cotizaciones? ¿Qué porcentaje representan sobre el total?
+    *   ¿Cuál es el ticket promedio de las cotizaciones 'Aprobadas' vs las 'Rechazadas'? ¿Estamos perdiendo cotizaciones de alto valor?
+
+3.  **Análisis de Clientes:**
+    *   ¿Quiénes son los clientes que más cotizaciones aprobadas tienen (no solo en cantidad, sino en valor total)?
+    *   ¿Hay algún patrón de productos que compran los mejores clientes?
+
+**Formato de Salida Obligatorio (JSON):**
+Genera un JSON con los insights basados en tu análisis de las áreas prioritarias.
+
 {
-  "resumenEjecutivo": "Un párrafo con los hallazgos MÁS importantes y específicos",
+  "resumenEjecutivo": "Un párrafo con los 2-3 hallazgos MÁS impactantes y accionables de tu análisis. Debe incluir nombres y números.",
   "insightsDescriptivos": [
     {
-      "titulo": "Título específico del insight",
-      "descripcion": "Explicación detallada con números y nombres concretos",
+      "titulo": "Ej: 'Producto Estrella: El 'Servicio de Consultoría Avanzada' tiene un 75% de conversión'",
+      "descripcion": "Análisis detallado sobre un hallazgo descriptivo. Usa números de los datos para soportar tu afirmación. Por ejemplo, de X veces cotizado, se aprobó Y veces.",
       "impacto": "alto|medio|bajo",
       "tipo": "oportunidad|advertencia|informacion"
     }
   ],
   "insightsPredictivos": [
     {
-      "titulo": "Predicción o tendencia específica",
-      "descripcion": "Explicación basada en los datos actuales",
+      "titulo": "Ej: 'Tendencia: Las cotizaciones con más de 5 ítems tienen menor probabilidad de cierre'",
+      "descripcion": "Basado en los datos, qué tendencia o predicción puedes hacer. Explica tu razonamiento.",
       "confianza": "alta|media|baja",
-      "tipo": "oportunidad|advertencia|informacion"
+      "tipo": "oportunidad|advertencia"
     }
   ],
   "recomendaciones": [
     {
-      "titulo": "Acción específica recomendada",
-      "descripcion": "Cómo implementarla y por qué es importante",
+      "titulo": "Ej: 'Acción: Promocionar las 'Joyas Ocultas' en las nuevas cotizaciones'",
+      "descripcion": "Una acción específica y clara que puedo tomar. Explica cómo implementarla y el porqué, basado en tus insights.",
       "prioridad": "alta|media|baja",
-      "impactoEstimado": "Descripción del impacto esperado"
+      "impactoEstimado": "Descripción cualitativa del impacto esperado. Ej: 'Podría incrementar el ticket promedio en un 15%'."
     }
   ]
 }
-
-IMPORTANTE: 
-- Usa NÚMEROS CONCRETOS de los datos
-- Menciona NOMBRES ESPECÍFICOS de productos/clientes cuando sea relevante
-- NO uses frases genéricas como "algunos productos" o "ciertos clientes"
-- Cada insight debe ser ACCIONABLE
-- Enfócate en hallazgos que el usuario no vería fácilmente en un dashboard simple`
+`
         }
       ],
       response_format: { type: "json_object" },
